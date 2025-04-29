@@ -1,0 +1,22 @@
+ 
+# Virtual Environment
+venv/
+*.env
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Logs
+*.log
+
+# IDE files
+.vscode/
+.idea/
+
+# Data files (optional)
+data/
+*.parquet
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
