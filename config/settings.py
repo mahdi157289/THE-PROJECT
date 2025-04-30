@@ -24,7 +24,11 @@ SPARK_CONFIG = {
     'master': 'local[*]',  # Use all available cores
     'packages': [
         'org.postgresql:postgresql:42.5.4'
-    ]
+    ],
+    'memory': {
+        'driver': '4g',
+        'executor': '4g'
+    }
 }
 
 # Paths Configuration
