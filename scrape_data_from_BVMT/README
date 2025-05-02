@@ -1,0 +1,32 @@
+## Script Explanation
+The script performs these steps:
+
+# Directory Creation: Creates a structured directory system for organizing the data:
+
+bvmt_data/: Main directory
+bvmt_data/raw/: Stores downloaded RAR files
+bvmt_data/extracted/: Stores extracted text files
+bvmt_data/csv/: Stores the final CSV files
+
+
+# File Download:
+- Downloads the RAR file from the provided URL using the requests library
+# File Extraction: 
+- Extracts the contents of the RAR file using rarfile library
+# Data Parsing: 
+- Reads the extracted text file and converts it to a pandas DataFrame
+
+The parsing logic includes automatic header detection
+It handles various spacing and formatting in the text file
+
+
+# CSV Conversion: 
+Saves the DataFrame to a CSV file
+
+# How to Use the Script
+## Setup Instructions
+1. Clone the repository
+2. Create virtual environment: \`python -m venv venv\`
+3. Activate virtual environment : venv\Scripts\activate
+4. Install dependencies: \`pip install -r requirements.txt\`
+- Check the bvmt_data/csv directory for the resulting CSV file
