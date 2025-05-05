@@ -1,32 +1,97 @@
-## Script Explanation
-The script performs these steps:
+📈 BVMT Historical Indices Scraper
+This repository contains a Python script (bvmt_scraper.py) designed to automate the downloading, extraction, parsing, cleaning, and consolidation of historical index data from the Bourse de Tunis (BVMT) official website. The script processes data from the year 2008 to 2024 and produces a single consolidated CSV file suitable for analysis.
 
-# Directory Creation: Creates a structured directory system for organizing the data:
+🔥 Features
+✅ Downloads yearly index data archives (.rar, .zip) from BVMT.
 
-bvmt_data/: Main directory
-bvmt_data/raw/: Stores downloaded RAR files
-bvmt_data/extracted/: Stores extracted text files
-bvmt_data/csv/: Stores the final CSV files
+✅ Extracts and processes various file formats (CSV, TXT, fixed-width, mixed-format).
 
+✅ Cleans numeric columns with European formatting and standardizes data.
 
-# File Download:
-- Downloads the RAR file from the provided URL using the requests library
-# File Extraction: 
-- Extracts the contents of the RAR file using rarfile library
-# Data Parsing: 
-- Reads the extracted text file and converts it to a pandas DataFrame
+✅ Handles multiple date formats and corrects common issues.
 
-The parsing logic includes automatic header detection
-It handles various spacing and formatting in the text file
+✅ Generates consolidated CSV file indices.csv for all years combined.
 
+✅ Provides detailed logs and an execution summary.
 
-# CSV Conversion: 
-Saves the DataFrame to a CSV file
+📂 Output
+Cleaned per-year CSVs: saved in the csv/ directory.
 
-# How to Use the Script
-## Setup Instructions
-1. Clone the repository
-2. Create virtual environment: \`python -m venv venv\`
-3. Activate virtual environment : venv\Scripts\activate
-4. Install dependencies: \`pip install -r requirements.txt\`
-- Check the bvmt_data/csv directory for the resulting CSV file
+Final consolidated CSV: saved at ../data/input/indices.csv.
+
+Log file: bvmt_scraper.log.
+
+🚀 Requirements
+Python 3.7+
+
+The following Python packages:
+
+bash
+Copy
+Edit
+pandas
+requests
+rarfile
+lxml  # For parsing HTML (used in alternate sources)
+Install them via:
+
+bash
+Copy
+Edit
+pip install pandas requests rarfile lxml
+For RAR file extraction, make sure the unrar utility is installed on your system:
+
+On Ubuntu/Debian:
+
+bash
+Copy
+Edit
+sudo apt-get install unrar
+On Windows, install WinRAR and ensure it's in your system PATH.
+
+🛠️ Usage
+Clone the repository or place the script in your desired folder.
+
+Run the script:
+
+bash
+Copy
+Edit
+python bvmt_scraper.py
+Wait for the process to complete.
+The script will:
+
+Download files from 2008 to 2024.
+
+Extract and clean the data.
+
+Save the consolidated CSV at ../data/input/indices.csv.
+
+Show a summary at the end.
+
+📊 Example of Execution Summary:
+yaml
+Copy
+Edit
+============================================================
+       SCRIPT EXECUTION SUMMARY FOR INDICES FROM 2008 --> 2024       
+============================================================
+Total processing time:           3 minutes 24.58 seconds
+Successful years:                17
+Failed years:                    0
+Consolidated file size:          5.63 MB
+
+Successful years: [2008, 2009, ..., 2024]
+Failed years: []
+============================================================
+📦 Folder Structure After Running
+bash
+Copy
+Edit
+.
+├── bvmt_scraper.py
+├── bvmt_scraper.log
+├── raw/                # Downloaded archives
+├── extracted/          # Extracted raw files
+├── csv/                # Cleaned per-year CSVs
+└── ../data/input/indices.csv  # Final consolidated file
