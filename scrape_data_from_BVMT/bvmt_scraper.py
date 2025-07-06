@@ -1103,9 +1103,13 @@ def main():
 
 if __name__ == "__main__":
     logger.info("Starting BVMT data processing")
+    print("HADOOP_HOME:", os.environ.get('HADOOP_HOME'))
+    print("winutils exists:", os.path.exists(os.path.join(os.environ.get('HADOOP_HOME', ''), 'bin', 'winutils.exe')))
     try:
         successful_years, failed_years = main()
         logger.info("BVMT data processing completed successfully")
     except Exception as e:
         logger.critical(f"Fatal error in main execution: {str(e)}", exc_info=True)
         raise
+    
+    

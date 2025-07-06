@@ -1,0 +1,118 @@
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                             BRONZE LEVEL LOADER                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                             INITIALIZATION PHASE                              │
+│                                                                               │
+│ 1. Set up logging system                                                     │
+│ 2. Initialize Spark session                                                  │
+│ 3. Initialize database connection                                            │
+│ 4. Load predefined schemas                                                   │
+└───────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                               DATA LOADING PHASE                              │
+│                                                                               │
+│ 1. Read CSV files with fallback mechanisms                                   │
+│ 2. Perform column case analysis                                              │
+│ 3. Standardize column names                                                  │
+│ 4. Preprocess data (type conversion, cleaning)                               │
+│ 5. Convert to Spark DataFrames                                               │
+│ 6. Add metadata columns                                                      │
+└───────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                              DATA PERSISTENCE PHASE                           │
+│                                                                               │
+│ 1. Save to Parquet files (Bronze layer storage)                              │
+│ 2. Save to PostgreSQL database                                               │
+└───────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                                      ▼
+┌───────────────────────────────────────────────────────────────────────────────┐
+│                              DATA EXTRACTION PHASE                            │
+│                                                                               │
+│ 1. Filter data by year                                                       │
+│ 2. Return filtered datasets                                                  │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+🏗️ BRONZE LEVEL LOADER WORKFLOW
+🔰 INITIALIZATION PHASE
+🧩 Setting the stage for the pipeline
+
+1️⃣ 📝 Set up structured logging – Ensures all actions are traceable and well-documented
+2️⃣ ⚙️ Initialize Spark session – Powers distributed data processing
+3️⃣ 🔗 Connect to the PostgreSQL database – Establishes a persistent storage channel
+4️⃣ 📜 Load predefined schemas – Brings schema consistency across datasets
+
+⬇️
+
+📥 DATA LOADING PHASE
+🔄 Where raw data starts to take shape
+
+1️⃣ 📂 Read CSV files with fallback mechanisms – Resilient ingestion even under irregular formats
+2️⃣ 🧠 Analyze column casing – Identifies naming pattern issues
+3️⃣ ✏️ Standardize column names – Enforces naming consistency
+4️⃣ 🧹 Preprocess data – Handles type conversions and cleans dirty values
+5️⃣ 🔄 Convert to Spark DataFrames – Enables scalable processing
+6️⃣ 🏷️ Add metadata columns – Tracks lineage and processing info
+
+⬇️
+
+🛢️ DATA PERSISTENCE PHASE
+💾 Storing the transformed data
+
+1️⃣ 📦 Save to Parquet (Bronze Layer) – Efficient columnar storage for future processing
+2️⃣ 🗃️ Save to PostgreSQL database – Makes data available for structured querying
+
+⬇️
+
+🎯 DATA EXTRACTION PHASE
+🔍 Accessing the refined data
+
+1️⃣ 📆 Filter by year – Extracts time-specific subsets
+2️⃣ 📤 Return filtered datasets – Ready for analysis or promotion to Silver layer
+
+🌟 Function Explanations
+🔧 Initialization Functions
+__init__:
+🛠️ Initializes the loader with logging, Spark session, DB connection, and schema configurations.
+
+_setup_logger:
+📋 Configures structured logging with both file and console handlers for transparent monitoring.
+
+📊 Data Analysis Functions
+_analyze_column_case:
+🔍 Analyzes column naming conventions and flags inconsistencies or formatting issues.
+
+_log_dataframe_stats:
+📈 Provides comprehensive statistics and insights about DataFrames (e.g., row count, null values).
+
+🧹 Data Processing Functions
+_preprocess_data:
+🧼 Performs data cleaning and ensures correct type conversion for seamless processing.
+
+_read_csv_with_fallback:
+🔄 A robust CSV reader with smart fallback strategies in case of read failures or format variations.
+
+🚀 Core Loading Functions
+load_bronze_data:
+🧩 Orchestrates the complete data loading process from raw to bronze stage with validations and logging.
+
+_save_to_postgres:
+🗃️ Saves processed data to a PostgreSQL database while ensuring detailed traceability and logging.
+
+🧰 Utility Functions
+get_case_analysis:
+🧠 Returns results from column naming pattern analysis to aid in schema consistency checks.
+
+extract_year_data:
+📆 Filters the dataset to include only records from a specified year.
+
+🎯 Main Function
+main:
+🧭 The central entry point coordinating the full ETL workflow, from ingestion to persistence.

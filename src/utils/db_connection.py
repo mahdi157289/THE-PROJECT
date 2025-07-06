@@ -1,6 +1,7 @@
  
 import logging
 from typing import Dict, Any
+from urllib.parse import quote_plus
 import sqlalchemy
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
@@ -17,6 +18,7 @@ class DatabaseConnector:
         """Singleton pattern implementation"""
         if not cls._instance:
             cls._instance = super().__new__(cls)
+            cls._instance.db_config = DB_CONFIG
             cls._instance._init_connection()
         return cls._instance
 
@@ -25,9 +27,9 @@ class DatabaseConnector:
         try:
             # Create connection string
             self.connection_string = (
-                f"postgresql://{DB_CONFIG['username']}:{DB_CONFIG['password']}@"
-                f"{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
-            )
+                 f"postgresql://{DB_CONFIG['username']}:{quote_plus(DB_CONFIG['password'])}@"
+                 f"{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}"
+        )
             
             # Create SQLAlchemy engine
             self.engine = create_engine(

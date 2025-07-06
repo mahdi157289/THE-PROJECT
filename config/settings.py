@@ -1,4 +1,3 @@
- 
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -28,6 +27,12 @@ SPARK_CONFIG = {
     'memory': {
         'driver': '4g',
         'executor': '4g'
+    },
+    'config': {
+        'spark.sql.execution.arrow.maxRecordsPerBatch': '1000',
+        'spark.sql.execution.arrow.timeout': '1200s',  # Increased timeout
+        'spark.driver.maxResultSize': '2g',
+        'spark.sql.execution.arrow.pyspark.fallback.enabled': 'true'
     }
 }
 
@@ -37,7 +42,7 @@ PATHS = {
     'bronze_data': BASE_DIR / 'data' / 'bronze',
     'silver_data': BASE_DIR / 'data' / 'silver',
     'gold_data': BASE_DIR / 'data' / 'gold',
-    'logs': BASE_DIR / 'data' / 'logs'
+    'logs': BASE_DIR / 'data' / 'logs',
 }
 
 # Logging Configuration
