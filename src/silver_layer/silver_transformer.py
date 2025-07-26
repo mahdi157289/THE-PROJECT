@@ -2,17 +2,13 @@ import os
 import logging
 import time
 import re
-import sys
 from pyspark.sql import DataFrame, Window
 from pyspark.sql.functions import (
     col, year, month, dayofweek, quarter, lag, abs, round, current_timestamp,
     lit, input_file_name, regexp_extract, dayofmonth, last_day, when,
     regexp_replace, trim, length, udf, coalesce
 )
-from pyspark.sql.types import (
-    DoubleType, IntegerType, BooleanType, 
-    TimestampType, StringType, StructType, StructField
-)
+from pyspark.sql.types import DoubleType, IntegerType, BooleanType, TimestampType, StringType, StructType, StructField
 from src.utils.spark_session import SparkSessionManager
 from src.utils.db_connection import DatabaseConnector
 from src.silver_layer.silver_schemas import create_silver_schemas
@@ -22,7 +18,6 @@ class SilverLevelTransformer:
     def __init__(self):
         self.logger = self._setup_logger()
         self.logger.info("🚀 Initializing SilverLevelTransformer")
-        
         try:
             self.spark_manager = SparkSessionManager()
             self.spark = self.spark_manager.get_spark_session()
@@ -39,7 +34,6 @@ class SilverLevelTransformer:
         logger.setLevel(logging.INFO)
         if logger.hasHandlers():
             logger.handlers.clear()
-        
         file_handler = logging.FileHandler(
             os.path.join(PATHS['logs'], 'silver_transformer.log'),
             encoding='utf-8'
@@ -49,14 +43,12 @@ class SilverLevelTransformer:
             '%(asctime)s | %(levelname)-8s | %(name)-25s | %(message)s'
         )
         file_handler.setFormatter(file_formatter)
-        
         console_handler = logging.StreamHandler()
         console_handler.setLevel(logging.INFO)
         console_formatter = logging.Formatter(
             '%(asctime)s | %(levelname)-8s | %(message)s'
         )
         console_handler.setFormatter(console_formatter)
-        
         logger.addHandler(file_handler)
         logger.addHandler(console_handler)
         return logger
@@ -74,6 +66,7 @@ class SilverLevelTransformer:
         """Standardize company names according to business rules"""
         self.logger.info("🔄 Standardizing company names")
         
+        # Define standardization patterns
         standardization_rules = [
             (r'(?i)ALKIM\s*(DA)?$', 'ALKIM'),
             (r'(?i)PALM\s*BEACH\s*(\([A-Z]+\))?$', 'PALM BEACH'),
@@ -86,163 +79,23 @@ class SilverLevelTransformer:
             (r'(?i)BQ\s*HABITAT\s*\(DA\)$', 'BQ HABITAT'),
             (r'(?i)LA\s*CARTE\s*\(CI\)$', 'LA CARTE'),
             (r'(?i)MONOPRIX\s*(DA)?$', 'MONOPRIX'),
-            (r'\s+', ' '),
-            (r'^\s+|\s+$', ''),
+            (r'\s+', ' '),  # Replace multiple spaces with single space
+            (r'^\s+|\s+$', ''),  # Trim leading/trailing spaces
         ]
         
+        # Apply standardization rules
         standardized_df = df
         for pattern, replacement in standardization_rules:
             standardized_df = standardized_df.withColumn(
                 "valeur",
                 regexp_replace(col("valeur"), pattern, replacement)
             )
-
         
-        
-        return standardized_df
-
-    def _standardize_company_codes_and_groups(self, df: DataFrame) -> DataFrame:
-        """Standardize company codes and groups based on reference mapping"""
-        self.logger.info("🔄 Standardizing company codes and groups")
-        
-        company_mapping = {
-            "ADWYA": ("TN0007250012", "11"),
-            "AETECH": ("TN0007500010", "12"),
-            "AIR LIQUIDE TSIE": ("TN0002300358", "12"),
-            "ALKIM": ("TN0003800711", "32"),
-            "AMEN BANK": ("TN0003400058", "11"),
-            "AMS": ("TN0001500859", "99"),
-            "ARTES": ("TN0007300015", "11"),
-            "ASS MULTI ITTIHAD": ("TN0007680010", "13"),
-            "ASSAD": ("TN0007140015", "99"),
-            "ASSU MAGHREBIA VIE": ("TNDKJ8O68X14", "11"),
-            "ASSUR MAGHREBIA": ("TN0007830011", "12"),
-            "ASSURANCES SALIM": ("TN0006550016", "11"),
-            "ASTREE": ("TN0003000452", "12"),
-            "ATB": ("TN0003600350", "11"),
-            "ATELIER MEUBLE INT": ("TN0007740012", "11"),
-            "ATL": ("TN0004700100", "11"),
-            "ATTIJARI BANK": ("TN0001600154", "11"),
-            "ATTIJARI LEASING": ("TN0006610018", "11"),
-            "ATTIJARI LS ROMPU": ("TN0006610141", "32"),
-            "Autres Lignes": ("999999", "32"),
-            "BEST LEASE": ("TN0007580012", "12"),
-            "BH": ("TN0001900604", "11"),
-            "BH ASSURANCE": ("TN0006550016", "12"),
-            "BH BANK": ("TN0001900604", "11"),
-            "BH LEASING": ("TN0006720049", "12"),
-            "BIAT": ("TN0001800457", "11"),
-            "BNA": ("TN0003100609", "11"),
-            "BNA ASSURANCES": ("TN0007680010", "13"),
-            "BQ DE TSIE": ("TN0002200103", "32"),
-            "BQ HABITAT": ("TN0001900612", "32"),
-            "BT": ("TN0002200053", "11"),
-            "BTE": ("TN0001300557", "12"),
-            "CARTHAGE CEMENT": ("TN0007400013", "11"),
-            "CELLCOM": ("TN0007590011", "12"),
-            "CIL": ("TN0004200853", "12"),
-            "CIMENTS DE BIZERTE": ("TN0007350010", "12"),
-            "CITY CARS": ("TN0007550015", "11"),
-            "DELICE HOLDING": ("TN0007670011", "11"),
-            "EL MAZRAA": ("TN0006480015", "12"),
-            "EL WIFACK LEASING": ("TN0007200017", "11"),
-            "ELBENE INDUSTRIE": ("TN0003300902", "13"),
-            "ELECTROSTAR": ("TN0006650014", "11"),
-            "ENNAKL AUTOMOBILES": ("TN0007410012", "11"),
-            "ESSOUKNA": ("TN0007210016", "11"),
-            "EURO-CYCLES": ("TN0007570013", "11"),
-            "GENERAL LEASING": ("TN0006610018", "12"),
-            "GIF": ("TN0007130016", "11"),
-            "GIF-FILTER": ("TN0007130016", "11"),
-            "HANNIBAL LEASE": ("TN0007310139", "12"),
-            "HEXABYTE": ("TN0007490012", "52"),
-            "ICF": ("TN0003200755", "11"),
-            "KARTHAGO AIRLINES": ("TN0007160013", "11"),
-            "LA CARTE": ("TN0001700301", "12"),
-            "LAND OR": ("TN0007510019", "11"),
-            "MAGASIN GENERAL": ("TN0006440010", "12"),
-            "MAGHREB INTERN PUB": ("TN0007660012", "52"),
-            "MIP": ("TN0007660012", "52"),
-            "MODERN LEASING": ("TN0006720049", "11"),
-            "MONOPRIX": ("TN0001000116", "32"),
-            "MPBS": ("TN0007620016", "11"),
-            "NEW BODY LINE": ("TN0007540016", "11"),
-            "OFFICEPLAST": ("TN0007700016", "51"),
-            "ONE TECH HOLDING": ("TN0007530017", "11"),
-            "PALM BEACH": ("TN0002900361", "32"),
-            "PLAC. TSIE-SICAF": ("TN0002500650", "12"),
-            "POULINA GP HOLDING": ("TN0005700018", "11"),
-            "SAH": ("TN0007610017", "11"),
-            "SALIM": ("TN0006550016", "13"),
-            "SANIMED": ("TN0007730013", "52"),
-            "SERVICOM": ("TN0007340011", "52"),
-            "SFBT": ("TN0001100254", "11"),
-            "SIAME": ("TN0006590012", "11"),
-            "SIMPAR": ("TN0004000055", "11"),
-            "SIPHAT": ("TN0006670012", "12"),
-            "SITEX": ("TN0004300307", "13"),
-            "SITS": ("TN0007180011", "12"),
-            "SMART TUNISIE": ("TNQPQXRODTH8", "11"),
-            "SOMOCER": ("TN0006780019", "11"),
-            "SOPAT": ("TN0007290018", "11"),
-            "SOTEMAIL": ("TN0007600018", "55"),
-            "SOTETEL": ("TN0006530018", "11"),
-            "SOTIPAPIER": ("TN0007630015", "11"),
-            "SOTRAPIL": ("TN0006660013", "11"),
-            "SOTUMAG": ("TN0006580013", "12"),
-            "SOTUVER": ("TN0006560015", "11"),
-            "SPDIT - SICAF": ("TN0001400704", "12"),
-            "STAR": ("TN0006060016", "12"),
-            "STB": ("TN0002600955", "11"),
-            "STE TUN. DU SUCRE": ("TN0006170013", "13"),
-            "STEQ": ("TN0006640015", "12"),
-            "STIP": ("TN0005030010", "12"),
-            "SYPHAX AIRLINES": ("TN0007560014", "51"),
-            "TAWASOL GP HOLDING": ("TN0007650013", "99"),
-            "TELNET HOLDING": ("TN0007440019", "11"),
-            "TIJARI": ("TN0001600162", "32"),
-            "TPR": ("TN0007270010", "11"),
-            "TUNINVEST-SICAR": ("TN0004100202", "12"),
-            "TUNIS RE": ("TN0007380017", "12"),
-            "TUNISAIR": ("TN0001200401", "11"),
-            "TUNISIE LAIT": ("TN0003300902", "12"),
-            "TUNISIE LEASING": ("TN0002100907", "11"),
-            "UADH": ("TN0007690019", "11"),
-            "UBCI": ("TN0002400505", "12"),
-            "UIB": ("TN0003900107", "11"),
-            "UNIMED": ("TN0007720014", "11"),
-            "WIFACK INT BANK": ("TN0007200017", "11")
-        }
-        
-        broadcast_mapping = self.spark.sparkContext.broadcast(company_mapping)
-        
-        def get_standardized_values(valeur):
-            mapping = broadcast_mapping.value
-            return mapping.get(valeur, (None, None))
-        
-        standardize_udf = udf(get_standardized_values, StructType([
-            StructField("standard_code", StringType()),
-            StructField("standard_group", StringType())
-        ]))
-        
-        standardized_df = df.withColumn(
-            "standard_values", 
-            standardize_udf(col("valeur"))
-        )
-
-        standardized_df = standardized_df.withColumn(
-            "code",
-            when(col("standard_values.standard_code").isNotNull(),
-                 col("standard_values.standard_code"))
-            .otherwise(col("code"))
-        ).withColumn(
-            "groupe",
-            when(col("standard_values.standard_group").isNotNull(),
-                 col("standard_values.standard_group"))
-            .otherwise(col("groupe"))
-        ).drop("standard_values")
-        
-        
+        # Log some samples for validation
+        sample = standardized_df.select("valeur").distinct().limit(10).collect()
+        self.logger.info("   → Sample standardized names:")
+        for i, row in enumerate(sample, 1):
+            self.logger.info(f"      {i}. '{row.valeur}'")
         
         return standardized_df
 
@@ -266,18 +119,37 @@ class SilverLevelTransformer:
         # STEP 2: Professional multi-pattern cleaning system
         self.logger.info("🧹 Professional Cleaning: Multi-pattern malformed data processing")
         
+        # Define professional-grade patterns to handle various malformation types
         patterns = [
+            # Pattern 1: Standard format with 6-digit code
             r'^(\d{6})\s+([^\d]+?)\s+([\d,]+(?:\.\d+)?)\s+([\d,]+(?:\.\d+)?)$',
+            
+            # Pattern 2: Variable-length code (4-8 digits)
             r'^(\d{4,8})\s+([^\d]+?)\s+([\d,]+(?:\.\d+)?)\s+([\d,]+(?:\.\d+)?)$',
+            
+            # Pattern 3: Prices with comma decimals
             r'^(\d{4,8})\s+([^\d]+?)\s+([\d,]+)\s+([\d,]+)$',
+            
+            # Pattern 4: Prices with leading/trailing spaces
             r'^(\d{4,8})\s+([^\d]+?)\s+\s*([\d,]+)\s+\s*([\d,]+)\s*$',
+            
+            # Pattern 5: Prices with comma decimal points
             r'^(\d{4,8})\s+([^\d]+?)\s+([\d.,]+)\s+([\d.,]+)$',
+            
+            # Pattern 6: Compact format without spaces
             r'^(\d{4,8})([^\d]+?)([\d.,]+)([\d.,]+)$',
+            
+            # Pattern 7: Handle missing price decimals
             r'^(\d{4,8})\s+([^\d]+?)\s+([\d]*\.[\d]+|[\d]+\.?)\s+([\d]*\.[\d]+|[\d]+\.?)$',
+            
+            # Pattern 8: Handle various whitespace formats
             r'^(\d{4,8})\s*([^\d]+?)\s*([\d.,]+)\s*([\d.,]+)$',
+            
+            # Pattern 9: Handle mixed decimal formats
             r'^(\d{4,8})\s*([^\d]+?)\s*([\d]+[.,]?\d*)\s*([\d]+[.,]?\d*)$'
         ]
         
+        # Create pattern-matching UDF
         def extract_components(code):
             if not code or str(code).strip().lower() in ['nan', 'n/a', 'null', '']:
                 return (0, None, None, None, None)
@@ -293,7 +165,7 @@ class SilverLevelTransformer:
                                 match.group(4).replace(',', '.') if match.group(4) else None)
                 except:
                     continue
-            return (0, None, None, None, None)
+            return (0, None, None, None, None)  # 0 = no match
         
         extract_udf = udf(extract_components, StructType([
             StructField("pattern_id", IntegerType()),
@@ -303,11 +175,12 @@ class SilverLevelTransformer:
             StructField("close_val", StringType())
         ]))
         
+        # Identify malformed records
         malformed_condition = (
-            (col("ouverture").isNull()) | 
-            (col("cloture").isNull()) | 
-            ((col("code").rlike(r"\d{4,8}[^\d]+\d")) & 
-             (~col("code").rlike(r"^\d{4,8}$")))
+            col("ouverture").isNull() | 
+            col("cloture").isNull() | 
+            (col("code").rlike(r"\d{4,8}[^\d]+\d") &  # Basic malformed indicator
+             ~col("code").rlike(r"^\d{4,8}$"))         # Exclude pure codes
         )
         
         clean_df = valid_df.filter(~malformed_condition)
@@ -317,10 +190,12 @@ class SilverLevelTransformer:
         if malformed_count > 0:
             self.logger.info(f"   → Found {malformed_count:,} malformed records")
             
+            # Apply professional pattern matching
             cleaned_malformed = malformed_df.withColumn(
                 "extracted", extract_udf(col("code"))
-            ).cache()
+            ).cache()  # Cache for multiple operations
             
+            # Calculate pattern effectiveness
             pattern_stats = cleaned_malformed.groupBy("extracted.pattern_id").count()
             pattern_stats_list = pattern_stats.collect()
             
@@ -329,16 +204,28 @@ class SilverLevelTransformer:
                 pid = stat["pattern_id"] or 0
                 self.logger.info(f"      Pattern {pid}: {stat['count']} records")
             
+            # Identify unmatched records
             unmatched_df = cleaned_malformed.filter(col("extracted.pattern_id") == 0)
             unmatched_count = unmatched_df.count()
             
+            if unmatched_count > 0:
+                self.logger.info(f"   → {unmatched_count} records couldn't be parsed")
+                sample_unmatched = unmatched_df.limit(5).select("code").collect()
+                for i, row in enumerate(sample_unmatched, 1):
+                    self.logger.info(f"        {i}. Unmatched code: '{row.code}'")
             
+            # Process and transform extracted values with improved valeur handling
             cleaned_malformed = cleaned_malformed.select(
                 col("seance"),
                 col("groupe"),
+                
+                # Use extracted code if available
                 coalesce(col("extracted.code_val"), col("code")).alias("code"),
+                
+                # OVERRIDE valeur with extracted name - key change
                 coalesce(
                     col("extracted.name_val"), 
+                    # Fallback to original valeur only if it's not numeric or empty
                     when(
                         (~col("valeur").rlike("[0-9]")) & 
                         (trim(col("valeur")) != "") & 
@@ -346,14 +233,19 @@ class SilverLevelTransformer:
                         col("valeur")
                     )
                 ).alias("valeur"),
+                
+                # Convert and clean opening price
                 when(
                     col("extracted.open_val").isNotNull(),
                     col("extracted.open_val").cast(DoubleType())
                 ).otherwise(col("ouverture")).alias("ouverture"),
+                
+                # Convert and clean closing price
                 when(
                     col("extracted.close_val").isNotNull(),
                     col("extracted.close_val").cast(DoubleType())
                 ).otherwise(col("cloture")).alias("cloture"),
+                
                 col("plus_bas"),
                 col("plus_haut"),
                 col("quantite_negociee"),
@@ -364,13 +256,20 @@ class SilverLevelTransformer:
                 col("source_file")
             )
             
+            # Log transformation samples for validation
+            sample = cleaned_malformed.limit(5).collect()
+            self.logger.info("   → Sample Transformation Results:")
+            for i, row in enumerate(sample, 1):
+                self.logger.info(f"      {i}. Code: '{row.code}' | Valeur: '{row.valeur}' | "
+                               f"Open: {row.ouverture} | Close: {row.cloture}")
             
-            
+            # Log value distribution
             valeur_stats = cleaned_malformed.groupBy("valeur").count().orderBy(col("count").desc()).limit(10)
             self.logger.info("   → Top 10 Valeur Values:")
             for row in valeur_stats.collect():
                 self.logger.info(f"      '{row.valeur}': {row['count']} records")
             
+            # Combine cleaned records
             clean_df = clean_df.union(cleaned_malformed)
             self.logger.info(f"   → Professionally cleaned {malformed_count:,} records")
         else:
@@ -378,9 +277,6 @@ class SilverLevelTransformer:
         
         # Standardize company names
         clean_df = self._standardize_company_names(clean_df)
-        
-        # Standardize company codes and groups
-        clean_df = self._standardize_company_codes_and_groups(clean_df)
         
         # Prepare rejected records
         rejected_df = invalid_df.withColumn(
@@ -585,4 +481,5 @@ def main():
         return 1
 
 if __name__ == "__main__":
+    import sys
     sys.exit(main())
