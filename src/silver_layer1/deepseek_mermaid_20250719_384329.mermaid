@@ -1,0 +1,14 @@
+sequenceDiagram
+    participant Cleaner
+    participant Validator
+    participant FeatureEngineer
+    
+    Cleaner->>Validator: clean_df (no numeric 'valeur')
+    Validator->>Validator: handle_nan() converts np.nan→None
+    Validator->>Validator: Check for None values
+    alt Has None values
+        Validator->>rejected_prime: Send record
+    else No None values
+        Validator->>FeatureEngineer: Send record
+    end
+    FeatureEngineer->>Output: silver_cotations

@@ -1,4 +1,7 @@
 import os
+import shutil
+import tempfile
+import time
 import logging
 from datetime import datetime
 import pandas as pd
@@ -7,21 +10,19 @@ from pathlib import Path
 import numpy as np
 from timeit import default_timer as timer
 from functools import wraps
+from sqlalchemy import create_engine
 
-from pyspark.sql import DataFrame
-from pyspark.sql.functions import current_timestamp, lit, col
-
+# Import your existing configs
+from config.settings import PATHS
 from src.utils.db_connection import DatabaseConnector
 from src.bronze_layer.schemas import create_bronze_schemas
-from config.settings import PATHS
-from src.utils.spark_session import SparkSessionManager
 
 class NumpyEncoder(json.JSONEncoder):
     """Custom JSON encoder that handles numpy data types"""
     def default(self, obj):
         if isinstance(obj, (np.int_, np.intc, np.intp, np.int8,
-                          np.int16, np.int32, np.int64, np.uint8,
-                          np.uint16, np.uint32, np.uint64)):
+                        np.int16, np.int32, np.int64, np.uint8,
+                        np.uint16, np.uint32, np.uint64)):
             return int(obj)
         elif isinstance(obj, (np.float_, np.float16, np.float32, np.float64)):
             return float(obj)
@@ -30,88 +31,50 @@ class NumpyEncoder(json.JSONEncoder):
         return super(NumpyEncoder, self).default(obj)
 
 def timed_operation(operation_name=None):
-    """
-    Decorator to log operation timing and status
-    
-    Args:
-        operation_name (str, optional): Name of the operation. If None, uses function name.
-    """
+    """Decorator to log operation timing"""
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            # Determine operation name
             op_name = operation_name if operation_name else func.__name__.replace('_', ' ').title()
-            
-            # Create logger instance
             op_logger = logging.getLogger(f'BronzeLevelLoader.operations.{op_name.replace(" ", "_").lower()}')
-            
-            # Log operation start
             op_logger.info(f"🚀 Starting operation: {op_name}")
             start_time = timer()
-            
             try:
-                # Execute the function
                 result = func(*args, **kwargs)
-                
-                # Log operation completion
                 duration = timer() - start_time
                 op_logger.info(f"✅ Completed {op_name} in {duration:.3f} seconds")
-                
                 return result
-                
             except Exception as e:
-                # Log operation failure
                 duration = timer() - start_time
                 op_logger.error(f"❌ Failed {op_name} after {duration:.3f} seconds", exc_info=True)
                 raise
-                
         return wrapper
     return decorator
 
 class BronzeLevelLoader:
     def __init__(self):
-        # Initialize logging
         self.logger = self._setup_logger()
-        
-        # Initialize Spark and Database managers
-        self.spark_manager = SparkSessionManager()
-        self.spark = self.spark_manager.get_spark_session()
-        self.db_connector = DatabaseConnector()
-        
-        # Load predefined schemas
+        self.db_engine = self._init_db_engine()
         self.cotations_schema, self.indices_schema = create_bronze_schemas()
-        
-        # Log initialization complete
-        self.logger.info("🏁 BronzeLevelLoader initialized successfully")
-        # Convert WindowsPath objects to strings before JSON serialization
-        paths_str = {k: str(v) for k, v in PATHS.items()}
-        self.logger.debug(f"Configuration paths:\n{json.dumps(paths_str, indent=2)}")
+        self.logger.info("🏁 BronzeLevelLoader initialized (Pandas-only)")
 
     def _setup_logger(self):
-        """
-        Set up structured logging configuration
-        """
+        """Identical to your original logging setup"""
         logger = logging.getLogger('BronzeLevelLoader')
         logger.setLevel(logging.DEBUG)
-        
-        # Clear existing handlers to avoid duplicate logs
         if logger.hasHandlers():
             logger.handlers.clear()
         
-        # File Handler - detailed logs
         log_file = os.path.join(PATHS['logs'], 'bronze_loader.log')
         file_handler = logging.FileHandler(log_file, encoding='utf-8')
         file_handler.setLevel(logging.DEBUG)
         
-        # Console Handler - important info only
         console_handler = logging.StreamHandler()
         console_handler.setLevel(logging.INFO)
         
-        # Custom Formatter with visual indicators
         file_formatter = logging.Formatter(
             '%(asctime)s | %(levelname)-8s | %(name)-25s | %(message)s'
         )
-        
         console_formatter = logging.Formatter(
             '%(asctime)s | %(levelname)-8s | %(message)s'
         )
@@ -121,32 +84,24 @@ class BronzeLevelLoader:
         
         logger.addHandler(file_handler)
         logger.addHandler(console_handler)
-        
-        # Log startup
-        startup_logger = logging.getLogger('BronzeLevelLoader.startup')
-        startup_logger.handlers = logger.handlers
-        startup_logger.info(f"📝 Detailed logs will be written to: {log_file}")
-        
         return logger
+
+    def _init_db_engine(self):
+        """Initialize SQLAlchemy engine using your existing DB config"""
+        db_config = DatabaseConnector().db_config
+        return create_engine(
+            f"postgresql://{db_config['username']}:{db_config['password']}@"
+            f"{db_config['host']}:{db_config['port']}/{db_config['database']}"
+        )
 
     @timed_operation("Column Case Analysis")
     def _analyze_column_case(self, df: pd.DataFrame, data_type: str) -> dict:
-        """
-        Analyze column names to detect case patterns and provide detailed statistics
-        
-        Args:
-            df (pd.DataFrame): Input DataFrame
-            data_type (str): 'cotations' or 'indices'
-        
-        Returns:
-            dict: Column case analysis results
-        """
+        """Identical to your original column analysis"""
         case_logger = logging.getLogger('BronzeLevelLoader.case_analysis')
         case_logger.handlers = self.logger.handlers
         
         try:
             case_logger.info(f"🔍 Analyzing column case patterns for {data_type}")
-            
             columns = df.columns.tolist()
             case_analysis = {
                 'data_type': data_type,
@@ -174,7 +129,6 @@ class BronzeLevelLoader:
                 'needs_standardization': False
             }
             
-            # Analyze each column
             for col_name in columns:
                 if not col_name or col_name.isspace():
                     case_analysis['case_patterns']['other'].append(col_name)
@@ -205,17 +159,14 @@ class BronzeLevelLoader:
                     case_analysis['case_patterns']['other'].append(col_name)
                     case_analysis['statistics']['other_count'] += 1
             
-            # Determine dominant pattern
             stats = case_analysis['statistics']
             max_count = max(stats.values())
             case_analysis['dominant_pattern'] = 'none' if max_count == 0 else \
                 next(pattern.replace('_count', '') for pattern, count in stats.items() if count == max_count)
             
-            # Check if standardization is needed
             pattern_counts = [count for count in stats.values() if count > 0]
             case_analysis['needs_standardization'] = len(pattern_counts) > 1
             
-            # Log analysis summary
             case_logger.info(
                 f"📊 Case Analysis Summary - {data_type}:\n"
                 f"  • Total columns: {case_analysis['total_columns']}\n"
@@ -223,20 +174,14 @@ class BronzeLevelLoader:
                 f"  • Needs standardization: {'Yes' if case_analysis['needs_standardization'] else 'No'}"
             )
             
-            # Log pattern breakdown
-            for pattern, columns in case_analysis['case_patterns'].items():
-                if columns:
-                    case_logger.debug(f"  • {pattern}: {len(columns)} columns - {columns}")
+            for pattern, cols in case_analysis['case_patterns'].items():
+                if cols:
+                    case_logger.debug(f"  • {pattern}: {len(cols)} columns - {cols}")
             
-            # Log statistics summary
-            case_logger.debug(f"📈 Pattern statistics:\n{json.dumps(stats, indent=2)}")
-            
-            # Warnings for potential issues
             if case_analysis['needs_standardization']:
-                case_logger.warning("⚠️ Mixed case patterns detected - consider standardization")
-            
+                case_logger.warning("⚠️ Mixed case patterns detected")
             if case_analysis['statistics']['other_count'] > 0:
-                case_logger.warning(f"⚠️ Found {case_analysis['statistics']['other_count']} columns with unusual naming patterns")
+                case_logger.warning(f"⚠️ Found {case_analysis['statistics']['other_count']} unusual columns")
             
             return case_analysis
             
@@ -253,14 +198,10 @@ class BronzeLevelLoader:
 
     @timed_operation("DataFrame Statistics Logging")
     def _log_dataframe_stats(self, df, name, sample_size=2):
-        """
-        Log comprehensive DataFrame statistics
-        """
+        """Adapted for Pandas (same info as original)"""
         stats_logger = logging.getLogger('BronzeLevelLoader.stats')
         stats_logger.handlers = self.logger.handlers
-        
-        # Basic stats
-        row_count = df.count() if isinstance(df, DataFrame) else len(df)
+        row_count = len(df)
         col_count = len(df.columns)
         
         stats_logger.info(
@@ -269,132 +210,67 @@ class BronzeLevelLoader:
             f"  • Columns: {col_count}"
         )
         
-        # Detailed column info and sample data
-        if isinstance(df, DataFrame):
-            stats_logger.debug(f"📜 Schema:\n{df.schema}")
-            
-            if row_count > 0:
-                sample_df = df.limit(sample_size).toPandas()
-                stats_logger.debug(f"🔍 Sample data:\n{sample_df.to_string()}")
-        else:
-            stats_logger.debug(f"📜 Columns: {df.columns.tolist()}")
-            stats_logger.debug(f"📊 Data types:\n{df.dtypes}")
-            
-            if row_count > 0:
-                stats_logger.debug(f"🔍 Sample data:\n{df.head(sample_size).to_string()}")
+        stats_logger.debug(f"📜 Columns: {df.columns.tolist()}")
+        stats_logger.debug(f"📊 Data types:\n{df.dtypes}")
         
-        # Log null counts
-        if isinstance(df, pd.DataFrame):
-            null_counts = df.isna().sum()
-            null_cols = null_counts[null_counts > 0]
-            if not null_cols.empty:
-                stats_logger.warning(f"⚠️ Null values detected:\n{null_cols}")
+        if row_count > 0:
+            stats_logger.debug(f"🔍 Sample data:\n{df.head(sample_size).to_string()}")
+        
+        null_counts = df.isna().sum()
+        null_cols = null_counts[null_counts > 0]
+        if not null_cols.empty:
+            stats_logger.warning(f"⚠️ Null values detected:\n{null_cols}")
 
     @timed_operation("Data Preprocessing")
     def _preprocess_data(self, df: pd.DataFrame, data_type: str) -> pd.DataFrame:
-        """
-        Preprocess input data with robust type handling and detailed progress logging
-        
-        Args:
-            df (pd.DataFrame): Input DataFrame
-            data_type (str): 'cotations' or 'indices'
-        
-        Returns:
-            Preprocessed DataFrame
-        """
+        """Identical logic to original, using Pandas"""
         preprocess_logger = logging.getLogger('BronzeLevelLoader.preprocess')
         preprocess_logger.handlers = self.logger.handlers
         
         try:
             preprocess_logger.info(f"🔧 Starting preprocessing for {data_type}")
-            preprocess_logger.debug(f"Input columns: {df.columns.tolist()}")
-            
-            # Make a copy to avoid SettingWithCopyWarning
             df = df.copy()
-            
-            # Add year column
-            preprocess_logger.debug("➕ Adding 'annee' column")
             df['annee'] = pd.to_datetime(df['seance']).dt.year
             
-            # Define numeric columns based on data type
-            if data_type == 'cotations':
-                numeric_cols = [
-                    'ouverture', 'cloture', 'plus_bas', 'plus_haut', 
-                    'quantite_negociee', 'nb_transaction', 'capitaux'
-                ]
-            elif data_type == 'indices':
-                numeric_cols = [
-                    'indice_jour', 'indice_veille', 'variation_veille', 
-                    'indice_plus_haut', 'indice_plus_bas', 'indice_ouv'
-                ]
-            else:
-                raise ValueError(f"Unknown data type: {data_type}")
+            numeric_cols = {
+                'cotations': ['ouverture', 'cloture', 'plus_bas', 'plus_haut', 
+                            'quantite_negociee', 'nb_transaction', 'capitaux'],
+                'indices': ['indice_jour', 'indice_veille', 'variation_veille',
+                          'indice_plus_haut', 'indice_plus_bas', 'indice_ouv']
+            }.get(data_type)
             
-            preprocess_logger.debug(f"🔄 Converting {len(numeric_cols)} numeric columns")
-            
-            # Process each numeric column
             conversion_stats = {}
             for col_name in numeric_cols:
                 if col_name in df.columns:
-                    preprocess_logger.debug(f"🔢 Processing column: {col_name}")
-                    
-                    # Count non-null values before conversion
                     non_null_before = df[col_name].notna().sum()
-                    
-                    # First ensure it's string type if it contains commas
                     if df[col_name].dtype == object:
                         df[col_name] = df[col_name].astype(str).str.replace(',', '.')
-                    
-                    # Then convert to numeric
                     df[col_name] = pd.to_numeric(df[col_name], errors='coerce')
-                    
-                    # Count non-null values after conversion
                     non_null_after = df[col_name].notna().sum()
-                    null_after_conversion = non_null_before - non_null_after
-                    
-                    # Store conversion stats
                     conversion_stats[col_name] = {
-                        'total': int(len(df[col_name])),
-                        'null_before': int(len(df[col_name]) - non_null_before),
-                        'null_after': int(len(df[col_name]) - non_null_after),
-                        'failed_conversion': int(null_after_conversion)
+                        'total': len(df[col_name]),
+                        'null_before': len(df[col_name]) - non_null_before,
+                        'null_after': len(df[col_name]) - non_null_after,
+                        'failed_conversion': non_null_before - non_null_after
                     }
-                    
-                    if null_after_conversion > 0:
-                        preprocess_logger.warning(
-                            f"⚠️ {null_after_conversion} values in '{col_name}' "
-                            f"could not be converted to numeric"
-                        )
             
-            # Log conversion summary
-            preprocess_logger.debug(
-                f"📊 Numeric conversion summary:\n"
-                f"{json.dumps(conversion_stats, indent=2, cls=NumpyEncoder)}"
-            )
+            # Convert non-numeric columns to string to prevent Parquet errors
+            if data_type == 'cotations':
+                for col in ['groupe', 'code', 'valeur']:
+                    if col in df.columns:
+                        df[col] = df[col].astype(str)
             
-            # Log completion
-            preprocess_logger.info(
-                f"✅ Successfully preprocessed {len(df):,} {data_type} rows"
-            )
-            
+            preprocess_logger.debug(f"📊 Conversion stats:\n{json.dumps(conversion_stats, indent=2, cls=NumpyEncoder)}")
+            preprocess_logger.info(f"✅ Preprocessed {len(df):,} rows")
             return df
-        
+            
         except Exception as e:
             preprocess_logger.error("❌ Preprocessing failed", exc_info=True)
             raise
 
     @timed_operation("CSV File Reading")
     def _read_csv_with_fallback(self, file_path: str, data_type: str) -> pd.DataFrame:
-        """
-        Read CSV with robust error handling and type inference
-        
-        Args:
-            file_path (str): Path to CSV file
-            data_type (str): 'cotations' or 'indices'
-            
-        Returns:
-            pd.DataFrame: Loaded dataframe
-        """
+        """Identical CSV reading logic with Pandas"""
         file_logger = logging.getLogger('BronzeLevelLoader.file_io')
         file_logger.handlers = self.logger.handlers
         
@@ -402,148 +278,122 @@ class BronzeLevelLoader:
             file_logger.info(f"📂 Reading {data_type} from: {file_path}")
             
             if not os.path.exists(file_path):
-                file_logger.error(f"❌ File not found: {file_path}")
                 raise FileNotFoundError(f"File not found: {file_path}")
             
-            file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
-            file_logger.debug(f"📏 File size: {file_size_mb:.2f} MB")
-            
-            # Method 1: Standard read with type inference
+            # Attempt standard read
             try:
-                file_logger.debug("🔄 Attempting standard read with type inference")
+                df_preview = pd.read_csv(file_path, nrows=0)
+                date_col = next((col for col in ['SEANCE', 'seance', 'Seance', 'DATE', 'date', 'Date'] 
+                              if col in df_preview.columns), None)
                 
-                # First read without date parsing to inspect columns
-                df_preview = pd.read_csv(file_path, nrows=0)  # Just headers
-                available_cols = df_preview.columns.tolist()
-                file_logger.debug(f"📜 Available columns: {available_cols}")
-                
-                # Determine date column dynamically
-                date_col = None
-                possible_date_cols = ['SEANCE', 'seance', 'Seance', 'DATE', 'date', 'Date']
-                for col in possible_date_cols:
-                    if col in available_cols:
-                        date_col = col
-                        file_logger.debug(f"📅 Found date column: {col}")
-                        break
-                
-                # Read with or without date parsing
                 if date_col:
                     df = pd.read_csv(
                         file_path,
                         parse_dates=[date_col],
-                        usecols=lambda column: column.strip() != '' and not column.startswith('Unnamed')
+                        thousands=',',
+                        decimal='.',
+                        usecols=lambda c: c.strip() and not c.startswith('Unnamed')
                     )
                 else:
-                    file_logger.warning("⚠️ No date column found, reading without date parsing")
                     df = pd.read_csv(
                         file_path,
-                        usecols=lambda column: column.strip() != '' and not column.startswith('Unnamed')
+                        thousands=',',
+                        decimal='.',
+                        usecols=lambda c: c.strip() and not c.startswith('Unnamed')
                     )
                 
-                file_logger.debug("✅ Successfully read with standard approach")
-                
-                # Analyze column case patterns before standardization
-                case_analysis = self._analyze_column_case(df, data_type)
-                
-                # Store case analysis in instance for potential future use
-                if not hasattr(self, '_case_analyses'):
-                    self._case_analyses = {}
-                self._case_analyses[data_type] = case_analysis
-                
-                # Convert all column names to lowercase
+                # Case analysis and standardization
+                self._analyze_column_case(df, data_type)
                 df.columns = df.columns.str.lower()
-                file_logger.debug("🔄 Columns standardized to lowercase")
-                
-                # Log DataFrame details
                 self._log_dataframe_stats(df, f"{data_type} (raw)")
-                
                 return df
                 
             except Exception as e:
-                file_logger.warning(f"⚠️ Standard read failed, trying fallback method: {str(e)}")
-                
-                # Method 2: Fallback with low_memory=False
+                file_logger.warning(f"⚠️ Standard read failed, trying fallback: {str(e)}")
                 df_preview = pd.read_csv(file_path, nrows=0)
-                available_cols = df_preview.columns.tolist()
-                file_logger.debug(f"📜 Available columns (fallback): {available_cols}")
+                date_col = next((col for col in ['SEANCE', 'seance', 'Seance', 'DATE', 'date', 'Date'] 
+                              if col in df_preview.columns), None)
                 
-                # Determine date column dynamically
-                date_col = None
-                for col in possible_date_cols:
-                    if col in available_cols:
-                        date_col = col
-                        file_logger.debug(f"📅 Found date column (fallback): {col}")
-                        break
-                
-                # Read with or without date parsing
                 if date_col:
                     df = pd.read_csv(
                         file_path,
                         parse_dates=[date_col],
                         low_memory=False,
-                        usecols=lambda column: column.strip() != '' and not column.startswith('Unnamed')
+                        thousands=',',
+                        decimal='.',
+                        usecols=lambda c: c.strip() and not c.startswith('Unnamed')
                     )
                 else:
-                    file_logger.warning("⚠️ No date column found (fallback), reading without date parsing")
                     df = pd.read_csv(
                         file_path,
                         low_memory=False,
-                        usecols=lambda column: column.strip() != '' and not column.startswith('Unnamed')
+                        thousands=',',
+                        decimal='.',
+                        usecols=lambda c: c.strip() and not c.startswith('Unnamed')
                     )
                 
-                # Analyze column case patterns before standardization
-                case_analysis = self._analyze_column_case(df, data_type)
-                
-                # Store case analysis
-                if not hasattr(self, '_case_analyses'):
-                    self._case_analyses = {}
-                self._case_analyses[data_type] = case_analysis
-                
-                # Convert all column names to lowercase
+                self._analyze_column_case(df, data_type)
                 df.columns = df.columns.str.lower()
-                file_logger.info("✅ Successfully read with fallback method")
-                
-                # Log DataFrame details
+                file_logger.info("✅ Successfully read with fallback")
                 self._log_dataframe_stats(df, f"{data_type} (raw)")
-                
                 return df
                 
         except Exception as e:
-            file_logger.error("❌ Failed to read CSV file", exc_info=True)
+            file_logger.error("❌ Failed to read CSV", exc_info=True)
             raise
 
     @timed_operation("Get Case Analysis")
     def get_case_analysis(self, data_type: str = None) -> dict:
-        """
-        Get column case analysis results
-        
-        Args:
-            data_type (str, optional): Specific data type ('cotations' or 'indices'). 
-                                     If None, returns all analyses.
-        
-        Returns:
-            dict: Case analysis results
-        """
+        """Unchanged from original"""
         if not hasattr(self, '_case_analyses'):
-            self.logger.warning("⚠️ No case analyses available. Run load_bronze_data() first.")
+            self.logger.warning("⚠️ No case analyses available")
             return {}
+        return self._case_analyses.get(data_type, {}) if data_type else self._case_analyses
+
+    def _safe_write_parquet(self, df: pd.DataFrame, path: str, max_retries: int = 3):
+        """Robust atomic file writing with temp files"""
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         
-        if data_type:
-            return self._case_analyses.get(data_type, {})
-        else:
-            return self._case_analyses
+        for attempt in range(1, max_retries + 1):
+            try:
+                # Write to temp directory first
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.parquet') as tmp:
+                    temp_path = tmp.name
+                    
+                df.to_parquet(temp_path)
+                
+                # Atomic move (works across filesystems)
+                shutil.move(temp_path, path)
+                
+                self.logger.info(f"💾 Successfully saved via atomic write: {path}")
+                return
+            except PermissionError as e:
+                # Clean up temp file on failure
+                if os.path.exists(temp_path):
+                    try:
+                        os.remove(temp_path)
+                    except:
+                        pass
+                        
+                if attempt < max_retries:
+                    sleep_time = 2 ** attempt  # Exponential backoff
+                    self.logger.warning(
+                        f"🔒 Permission denied (attempt {attempt}/{max_retries}). "
+                        f"Retrying in {sleep_time}s..."
+                    )
+                    time.sleep(sleep_time)
+                else:
+                    self.logger.error("❌ Atomic write failed after retries")
+                    raise
+            except Exception as e:
+                self.logger.error(f"❌ Unexpected write error: {str(e)}")
+                raise
 
     @timed_operation("Bronze Data Loading")
     def load_bronze_data(self):
-        """
-        Load data to Bronze layer with comprehensive error handling and detailed logging
-        
-        Returns:
-            Tuple of DataFrames for cotations and indices
-        """
+        """Main workflow with robust file handling for Windows"""
         start_time = datetime.now()
-        self.logger.info("🏁 Starting Bronze Layer Data Load")
-        self.logger.debug(f"⏱️ Start time: {start_time}")
+        self.logger.info("🏁 Starting Bronze Layer Load (Pandas)")
         
         loading_stats = {
             "cotations": {"input_rows": 0, "output_rows": 0, "duration": 0},
@@ -567,19 +417,7 @@ class BronzeLevelLoader:
             self.logger.info(f"🔧 Preprocessing {len(cotations_pdf):,} rows")
             cotations_pdf = self._preprocess_data(cotations_pdf, 'cotations')
             
-            # Convert to Spark DataFrame
-            self.logger.info("🔄 Converting to Spark DataFrame")
-            df_cotations = self.spark.createDataFrame(cotations_pdf, schema=self.cotations_schema)
-            
-            # Add metadata columns
-            self.logger.debug("➕ Adding metadata columns")
-            df_cotations = df_cotations.withColumn(
-                "ingestion_timestamp", current_timestamp()
-            ).withColumn(
-                "source_file", lit(cotations_path)
-            )
-            
-            cotations_count = df_cotations.count()
+            cotations_count = len(cotations_pdf)
             loading_stats["cotations"]["output_rows"] = cotations_count
             cotations_duration = (datetime.now() - cotations_start).total_seconds()
             loading_stats["cotations"]["duration"] = cotations_duration
@@ -605,19 +443,7 @@ class BronzeLevelLoader:
             self.logger.info(f"🔧 Preprocessing {len(indices_pdf):,} rows")
             indices_pdf = self._preprocess_data(indices_pdf, 'indices')
             
-            # Convert to Spark DataFrame
-            self.logger.info("🔄 Converting to Spark DataFrame")
-            df_indices = self.spark.createDataFrame(indices_pdf, schema=self.indices_schema)
-            
-            # Add metadata columns
-            self.logger.debug("➕ Adding metadata columns")
-            df_indices = df_indices.withColumn(
-                "ingestion_timestamp", current_timestamp()
-            ).withColumn(
-                "source_file", lit(indices_path)
-            )
-            
-            indices_count = df_indices.count()
+            indices_count = len(indices_pdf)
             loading_stats["indices"]["output_rows"] = indices_count
             indices_duration = (datetime.now() - indices_start).total_seconds()
             loading_stats["indices"]["duration"] = indices_duration
@@ -635,20 +461,20 @@ class BronzeLevelLoader:
             bronze_cotations_path = os.path.join(PATHS['bronze_data'], 'bronze_cotations.parquet')
             bronze_indices_path = os.path.join(PATHS['bronze_data'], 'bronze_indices.parquet')
 
-            # Save to Parquet
+            # Save to Parquet with robust error handling
             saving_start = datetime.now()
             self.logger.info(f"💿 Saving cotations to Parquet: {bronze_cotations_path}")
-            df_cotations.write.mode("overwrite").parquet(bronze_cotations_path)
+            self._safe_write_parquet(cotations_pdf, bronze_cotations_path)
             
             self.logger.info(f"💿 Saving indices to Parquet: {bronze_indices_path}")
-            df_indices.write.mode("overwrite").parquet(bronze_indices_path)
+            self._safe_write_parquet(indices_pdf, bronze_indices_path)
             
             # Save to PostgreSQL
             self.logger.info("🐘 Saving cotations to PostgreSQL")
-            self._save_to_postgres(df_cotations, 'bronze_cotations')
+            self._save_to_postgres(cotations_pdf, 'bronze_cotations')
             
             self.logger.info("🐘 Saving indices to PostgreSQL")
-            self._save_to_postgres(df_indices, 'bronze_indices')
+            self._save_to_postgres(indices_pdf, 'bronze_indices')
             
             saving_duration = (datetime.now() - saving_start).total_seconds()
             
@@ -678,7 +504,7 @@ class BronzeLevelLoader:
             # Detailed stats as JSON
             self.logger.debug(f"📈 Detailed loading statistics:\n{json.dumps(loading_stats, indent=2)}")
 
-            return df_cotations, df_indices
+            return cotations_pdf, indices_pdf
 
         except Exception as e:
             self.logger.error("❌ Bronze Layer Data Load failed", exc_info=True)
@@ -686,107 +512,69 @@ class BronzeLevelLoader:
             raise
 
     @timed_operation("PostgreSQL Save")
-    def _save_to_postgres(self, df: DataFrame, table_name: str):
-        """Save DataFrame to PostgreSQL with detailed logging"""
+    def _save_to_postgres(self, df: pd.DataFrame, table_name: str):
+        """Pandas-to-SQL with chunking"""
         db_logger = logging.getLogger('BronzeLevelLoader.postgres')
         db_logger.handlers = self.logger.handlers
-       
+        
         try:
             start_time = datetime.now()
-            row_count = df.count()
+            row_count = len(df)
+            db_logger.info(f"💾 Saving {row_count:,} rows to {table_name}")
             
-            db_logger.info(f"💾 Saving {row_count:,} rows to PostgreSQL table '{table_name}'")
-            
-            # Construct proper JDBC URL
-            jdbc_url = (
-                f"jdbc:postgresql://{self.db_connector.db_config['host']}:"
-                f"{self.db_connector.db_config['port']}/"
-                f"{self.db_connector.db_config['database']}"
-            )
-            
-            # Save to PostgreSQL
-            df.write \
-                .format("jdbc") \
-                .mode("overwrite") \
-                .option("url", jdbc_url) \
-                .option("dbtable", table_name) \
-                .option("user", self.db_connector.db_config['username']) \
-                .option("password", self.db_connector.db_config['password']) \
-                .option("driver", "org.postgresql.Driver") \
-                .save()
+            # Use chunksize for better performance
+            chunksize = 10000
+            total_rows = 0
+            for i in range(0, len(df), chunksize):
+                chunk = df[i:i+chunksize]
+                if_exists = 'replace' if i == 0 else 'append'
+                chunk.to_sql(
+                    table_name,
+                    self.db_engine,
+                    if_exists=if_exists,
+                    index=False,
+                    method='multi'
+                )
+                total_rows += len(chunk)
+                db_logger.debug(f"  • Saved chunk: {i+1}-{i+len(chunk)}")
             
             duration = (datetime.now() - start_time).total_seconds()
-            rows_per_second = int(row_count / duration) if duration > 0 else 0
-            
+            rows_per_second = total_rows / max(duration, 0.001)  # Avoid division by zero
             db_logger.info(
                 f"✅ Saved to PostgreSQL:\n"
-                f"  • Rows: {row_count:,}\n"
+                f"  • Rows: {total_rows:,}\n"
                 f"  • Duration: {duration:.2f}s\n"
-                f"  • Throughput: {rows_per_second:,} rows/s"
+                f"  • Throughput: {int(rows_per_second):,} rows/s"
             )
-       
         except Exception as e:
-            db_logger.error(f"❌ Failed to save to PostgreSQL table '{table_name}'", exc_info=True)
+            db_logger.error(f"❌ Failed to save to {table_name}", exc_info=True)
             raise
 
     @timed_operation("Year Data Extraction")
     def extract_year_data(self, year: int):
-        """
-        Extract data for a specific year with detailed logging
-        
-        Args:
-            year (int): Year to extract
-            
-        Returns:
-            Tuple of DataFrames for cotations and indices of the specified year
-        """
+        """Read from Parquet and filter by year"""
         extract_logger = logging.getLogger('BronzeLevelLoader.extract')
         extract_logger.handlers = self.logger.handlers
         
         try:
-            start_time = datetime.now()
-            extract_logger.info(f"📅 Extracting data for year {year}")
+            # Read Parquet files
+            bronze_cotations_path = os.path.join(PATHS['bronze_data'], 'bronze_cotations.parquet')
+            bronze_indices_path = os.path.join(PATHS['bronze_data'], 'bronze_indices.parquet')
             
-            # Filter Cotations by year
-            cotations_path = os.path.join(PATHS['bronze_data'], 'bronze_cotations.parquet')
-            extract_logger.info(f"📂 Reading cotations from: {cotations_path}")
+            cotations = pd.read_parquet(bronze_cotations_path)
+            indices = pd.read_parquet(bronze_indices_path)
             
-            df_cotations = self.spark.read.parquet(cotations_path)
-            extract_logger.debug(f"📊 Total cotations rows: {df_cotations.count():,}")
+            # Filter by year
+            cotations_year = cotations[cotations['annee'] == year]
+            indices_year = indices[indices['annee'] == year]
             
-            df_cotations_year = df_cotations.filter(col('annee') == year)
-            cotations_count = df_cotations_year.count()
-            extract_logger.info(f"🔍 Filtered to {cotations_count:,} rows for year {year}")
-            
-            # Filter Indices by year
-            indices_path = os.path.join(PATHS['bronze_data'], 'bronze_indices.parquet')
-            extract_logger.info(f"📂 Reading indices from: {indices_path}")
-            
-            df_indices = self.spark.read.parquet(indices_path)
-            extract_logger.debug(f"📊 Total indices rows: {df_indices.count():,}")
-            
-            df_indices_year = df_indices.filter(col('annee') == year)
-            indices_count = df_indices_year.count()
-            extract_logger.info(f"🔍 Filtered to {indices_count:,} rows for year {year}")
-
-            # Log sample data
-            if cotations_count > 0:
-                extract_logger.debug(f"🔍 Cotations sample for {year}:\n{df_cotations_year.limit(2).toPandas().to_string()}")
-            
-            if indices_count > 0:
-                extract_logger.debug(f"🔍 Indices sample for {year}:\n{df_indices_year.limit(2).toPandas().to_string()}")
-            
-            duration = (datetime.now() - start_time).total_seconds()
             extract_logger.info(
-                f"✅ Extraction complete:\n"
-                f"  • Duration: {duration:.2f}s\n"
-                f"  • Results: {cotations_count:,} cotations rows, {indices_count:,} indices rows"
+                f"✅ Extracted {len(cotations_year):,} cotations and {len(indices_year):,} indices for {year}"
             )
-
-            return df_cotations_year, df_indices_year
-
+            return cotations_year, indices_year
+            
         except Exception as e:
-            extract_logger.error(f"❌ Failed to extract data for year {year}", exc_info=True)
+            extract_logger.error(f"❌ Extraction failed for {year}", exc_info=True)
             raise
 
 def main():

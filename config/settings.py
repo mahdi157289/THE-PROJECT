@@ -17,22 +17,40 @@ DB_CONFIG = {
     'database': os.getenv('DB_NAME', 'pfe_database')
 }
 
-# Spark Configuration
+# Spark Configuration (Updated for Spark 3.4.0)
 SPARK_CONFIG = {
     'app_name': 'Medallion ETL Pipeline',
-    'master': 'local[*]',  # Use all available cores
+    'master': 'spark://spark-master:7077',  # Use service name for Docker networking
     'packages': [
         'org.postgresql:postgresql:42.5.4'
     ],
-    'memory': {
-        'driver': '4g',
-        'executor': '4g'
-    },
     'config': {
-        'spark.sql.execution.arrow.maxRecordsPerBatch': '1000',
-        'spark.sql.execution.arrow.timeout': '1200s',  # Increased timeout
-        'spark.driver.maxResultSize': '2g',
-        'spark.sql.execution.arrow.pyspark.fallback.enabled': 'true'
+        # Resource allocation
+        'spark.driver.memory': '2g',
+        'spark.executor.memory': '2g',
+        'spark.executor.cores': '2',
+        'spark.executor.instances': '2',
+        
+        # Networking
+        'spark.driver.host': 'host.docker.internal',
+        'spark.driver.bindAddress': '0.0.0.0',
+        'spark.network.timeout': '600s',
+        
+        # Ivy configuration
+        'spark.jars.ivy': '/opt/bitnami/spark/.ivy2',
+        'spark.jars.ivySettings': '/opt/bitnami/spark/conf/ivy.xml',
+        'spark.jars.repositories': 'https://repo1.maven.org/maven2/',
+        
+        # Performance tuning
+        'spark.sql.shuffle.partitions': '200',
+        'spark.default.parallelism': '200',
+        'spark.sql.execution.arrow.enabled': 'true',
+        'spark.sql.execution.arrow.maxRecordsPerBatch': '10000',
+        'spark.serializer': 'org.apache.spark.serializer.KryoSerializer',
+        
+        # Windows-specific
+        'spark.hadoop.fs.file.impl': 'org.apache.hadoop.fs.LocalFileSystem',
+        'spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version': '2'
     }
 }
 
@@ -43,6 +61,7 @@ PATHS = {
     'silver_data': BASE_DIR / 'data' / 'silver',
     'gold_data': BASE_DIR / 'data' / 'gold',
     'logs': BASE_DIR / 'data' / 'logs',
+    'warehouse': BASE_DIR / 'spark-warehouse'
 }
 
 # Logging Configuration

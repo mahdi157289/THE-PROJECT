@@ -144,7 +144,7 @@ class DatabaseConnector:
 
         CREATE TABLE IF NOT EXISTS silver_histo_indice (
             seance DATE,
-            code_indice INTEGER,
+            code_indice VARCHAR(50),
             lib_indice VARCHAR(100),
             indice_jour NUMERIC(10,2),
             indice_veille NUMERIC(10,2),
@@ -152,6 +152,8 @@ class DatabaseConnector:
             indice_plus_haut NUMERIC(10,2),
             indice_plus_bas NUMERIC(10,2),
             indice_ouv NUMERIC(10,2),
+            variation_abs NUMERIC(10,2),  -- Added new column
+            variation_pct NUMERIC(10,2),  -- Added new column
             day_of_week INTEGER,
             month INTEGER,
             quarter INTEGER,

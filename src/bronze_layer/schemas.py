@@ -114,7 +114,8 @@ def create_silver_schemas():
         StructField("indice_plus_haut", DoubleType(), True),
         StructField("indice_plus_bas", DoubleType(), True),
         StructField("indice_ouv", DoubleType(), True),
-        
+        StructField("variation_abs", DoubleType(), True),  # New field
+        StructField("variation_pct", DoubleType(), True),  # New field
         # Year field
         StructField("annee", IntegerType(), False),  # Not nullable in silver
         

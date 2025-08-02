@@ -5,4 +5,6 @@ sqlalchemy
 pandas
 python-dotenv
 pytest
-findspark
+numpy
+pandas
+pydantic

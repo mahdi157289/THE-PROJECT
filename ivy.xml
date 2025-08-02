@@ -1,0 +1,7 @@
+<ivysettings>
+    <property name="ivy.default.ivy.user.dir" value="/opt/bitnami/spark/.ivy2" override="false"/>
+    <caches defaultCacheDir="/opt/bitnami/spark/.ivy2/cache"/>
+    <resolvers>
+        <ibiblio name="central" m2compatible="true"/>
+    </resolvers>
+</ivysettings>

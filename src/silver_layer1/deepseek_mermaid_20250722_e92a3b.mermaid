@@ -1,0 +1,9 @@
+graph TD
+A[Load Bronze Data] --> B[Clean Cotations]
+B --> C[Transform Cotations]
+A --> D[Transform Indices]
+C --> E[Combine Rejects]
+D --> E
+E --> F[Save Rejects]
+C --> G[Save Silver Cotations]
+D --> H[Save Silver Indices]
