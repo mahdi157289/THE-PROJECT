@@ -137,13 +137,14 @@ class SilverLevelTransformer:
             )
             self.logger.info(f"✅ Transformed {len(silver_cotations):,} cotations, rejected {len(rejected_prime_cotations):,}")
             
-            # Transform indices
+            # Clean and transform indices
+            self.logger.info("🧹 Starting indices data cleaning")
+            clean_indices, _ = self.cleaner.clean_indices(df_indices, 'bronze_indices.parquet')
+            
             self.logger.info("📈 Starting indices transformation")
             silver_indices, rejected_prime_indices = self.transformer.transform_indices(
-                df_indices, 'bronze_indices.parquet'
+                clean_indices, 'bronze_indices.parquet'  # Use cleaned data
             )
-            self.logger.info(f"✅ Transformed {len(silver_indices):,} indices, rejected {len(rejected_prime_indices):,}")
-            
             # Combine and save first 10 rejected prime records
             all_rejected_prime = pd.concat([rejected_prime_cotations, rejected_prime_indices])
             if not all_rejected_prime.empty:

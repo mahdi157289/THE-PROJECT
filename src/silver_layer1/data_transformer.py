@@ -67,6 +67,15 @@ class IndiceItem(BaseModel):
         if isinstance(v, np.generic):
             return v.item()
         return v
+    @validator('code_indice', pre=True)
+    def convert_to_int(cls, v):
+        """Convert to integer while handling numpy/pandas types"""
+        if isinstance(v, (np.integer, int)):
+            return int(v)
+        try:
+            return int(float(v))
+        except (TypeError, ValueError):
+            return None
 
 # --------------------------
 # Data Transformer Class

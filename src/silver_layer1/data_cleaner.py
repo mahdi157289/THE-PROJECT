@@ -10,7 +10,81 @@ class DataCleaner:
     def __init__(self, logger: logging.Logger):
         self.logger = logger
         self._setup_standardization_rules()
-
+        self._setup_indice_mapping()
+        
+    def _setup_indice_mapping(self):
+        """Initialize indice standardization rules"""
+        self.indice_mapping = {
+            "TUNINDEX": (0, "Main market index containing all listed companies"),
+            "TUNINDEX20": (0, "Top 20 most liquid stocks across all sectors"),
+            "TUNSAC": (10, "Diversified holding companies"),
+            "TUNFIN": (3, "Financial services (leasing, factoring)"),
+            "INDDI": (10, "Industrial holding companies"),
+            "TUNDIS": (5, "Retail and wholesale distribution"),
+            "TUNBANQ": (1, "Commercial and investment banks"),
+            "TUNAUTO": (5, "Automotive manufacturers and distributors"),
+            "INDMB": (7, "Building materials manufacturers"),
+            "INDSF": (3, "Financial services subset"),
+            "INBCO": (5, "Commerce and distribution companies"),
+            "INDBQ": (1, "Alternative banking sector index"),
+            "TUN20": (0, "Alternative name for TUNINDEX20"),
+            "TUNCONS": (5, "Consumer goods and retail"),
+            "INSFI": (3, "Financial institutions subset"),
+            "INAUE": (8, "Transportation and logistics companies"),
+            "TUNASS": (2, "Insurance and reinsurance companies"),
+            "TUNSEFI": (123, "Combined banks, insurance and financial services"),
+            "INPMP": (9, "Pharmaceutical and healthcare companies"),
+            "INDSC": (6, "Technology and IT services"),
+            "PX1": (0, "Former main index (now TUNINDEX)"),
+            "TUNBATIM": (7, "Construction and building materials"),
+            "INDAS": (2, "Alternative insurance sector index"),
+            "INBMC": (7, "Building materials subset"),
+            "INAAB": (6, "Technology and telecom subset"),
+            "TUNALIM": (5, "Food processing and agribusiness"),
+            "TUNMENAG": (5, "Household goods manufacturers"),
+            "INDIN": (4, "Industrial and manufacturing companies")
+        }
+    
+    # Add this new method for indices cleaning
+    def clean_indices(self, df: pd.DataFrame, source_file: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+        """Clean indices data by standardizing lib_indice and mapping to sector numbers"""
+        self.logger.info(f"🧹 Starting indices cleaning for {len(df):,} records")
+        
+        # Standardize lib_indice names
+        df = self._standardize_indice_names(df)
+        
+        # Map to sector numbers
+        df = self._map_indice_sectors(df)
+        
+        return df, pd.DataFrame()  # No rejections for indices
+    
+    def _standardize_indice_names(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Standardize indice names to match mapping keys"""
+        if 'lib_indice' in df.columns:
+            # Trim whitespace and standardize case
+            df['lib_indice'] = df['lib_indice'].str.strip().str.upper()
+            
+            # Apply specific cleaning rules
+            name_rules = [
+                (r'TUNINDEX\s*20', 'TUNINDEX20'),
+                (r'BANQUE', 'BANQ'),
+                (r'FINANCIER', 'FIN'),
+                (r'\s+', ' '),
+                (r'^\s+|\s+$', '')
+            ]
+            
+            for pattern, replacement in name_rules:
+                df['lib_indice'] = df['lib_indice'].str.replace(pattern, replacement, regex=True)
+        return df
+    
+    def _map_indice_sectors(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Map lib_indice to sector numbers"""
+        if 'lib_indice' in df.columns:
+            df['code_indice'] = df['lib_indice'].map(
+                lambda x: self.indice_mapping.get(x, (99, "Unknown"))[0]
+            ).astype('int64')
+        return df
+    
     def _setup_standardization_rules(self):
         """Initialize all standardization rules"""
         self.name_rules = [

@@ -17,42 +17,6 @@ DB_CONFIG = {
     'database': os.getenv('DB_NAME', 'pfe_database')
 }
 
-# Spark Configuration (Updated for Spark 3.4.0)
-SPARK_CONFIG = {
-    'app_name': 'Medallion ETL Pipeline',
-    'master': 'spark://spark-master:7077',  # Use service name for Docker networking
-    'packages': [
-        'org.postgresql:postgresql:42.5.4'
-    ],
-    'config': {
-        # Resource allocation
-        'spark.driver.memory': '2g',
-        'spark.executor.memory': '2g',
-        'spark.executor.cores': '2',
-        'spark.executor.instances': '2',
-        
-        # Networking
-        'spark.driver.host': 'host.docker.internal',
-        'spark.driver.bindAddress': '0.0.0.0',
-        'spark.network.timeout': '600s',
-        
-        # Ivy configuration
-        'spark.jars.ivy': '/opt/bitnami/spark/.ivy2',
-        'spark.jars.ivySettings': '/opt/bitnami/spark/conf/ivy.xml',
-        'spark.jars.repositories': 'https://repo1.maven.org/maven2/',
-        
-        # Performance tuning
-        'spark.sql.shuffle.partitions': '200',
-        'spark.default.parallelism': '200',
-        'spark.sql.execution.arrow.enabled': 'true',
-        'spark.sql.execution.arrow.maxRecordsPerBatch': '10000',
-        'spark.serializer': 'org.apache.spark.serializer.KryoSerializer',
-        
-        # Windows-specific
-        'spark.hadoop.fs.file.impl': 'org.apache.hadoop.fs.LocalFileSystem',
-        'spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version': '2'
-    }
-}
 
 # Paths Configuration
 PATHS = {
@@ -92,5 +56,47 @@ LOGGING_CONFIG = {
             'level': 'INFO',
             'propagate': True
         }
+    }
+}
+
+
+
+
+
+
+# Spark Configuration (Updated for Spark 3.4.0)
+SPARK_CONFIG = {
+    'app_name': 'Medallion ETL Pipeline',
+    'master': 'spark://spark-master:7077',  # Use service name for Docker networking
+    'packages': [
+        'org.postgresql:postgresql:42.5.4'
+    ],
+    'config': {
+        # Resource allocation
+        'spark.driver.memory': '2g',
+        'spark.executor.memory': '2g',
+        'spark.executor.cores': '2',
+        'spark.executor.instances': '2',
+        
+        # Networking
+        'spark.driver.host': 'host.docker.internal',
+        'spark.driver.bindAddress': '0.0.0.0',
+        'spark.network.timeout': '600s',
+        
+        # Ivy configuration
+        'spark.jars.ivy': '/opt/bitnami/spark/.ivy2',
+        'spark.jars.ivySettings': '/opt/bitnami/spark/conf/ivy.xml',
+        'spark.jars.repositories': 'https://repo1.maven.org/maven2/',
+        
+        # Performance tuning
+        'spark.sql.shuffle.partitions': '200',
+        'spark.default.parallelism': '200',
+        'spark.sql.execution.arrow.enabled': 'true',
+        'spark.sql.execution.arrow.maxRecordsPerBatch': '10000',
+        'spark.serializer': 'org.apache.spark.serializer.KryoSerializer',
+        
+        # Windows-specific
+        'spark.hadoop.fs.file.impl': 'org.apache.hadoop.fs.LocalFileSystem',
+        'spark.hadoop.mapreduce.fileoutputcommitter.algorithm.version': '2'
     }
 }
