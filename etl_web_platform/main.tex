@@ -1,0 +1,110 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{url}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{tcolorbox}
+\usepackage{changepage}
+\usepackage{afterpage}
+
+% Load global configuration
+\input{global_config}
+
+% Page setup
+\geometry{margin=2.5cm}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\leftmark}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Title formatting
+\titleformat{\section}{\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection}{1em}{}
+
+% Code listing setup
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!60!black},
+    stringstyle=\color{red},
+    numbers=left,
+    numberstyle=\tiny,
+    numbersep=5pt,
+    frame=single,
+    breaklines=true,
+    showstringspaces=false
+}
+
+% Hyperref setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=cyan,
+    citecolor=red
+}
+
+% Custom commands
+\newcommand{\blankpage}{\newpage\thispagestyle{empty}\null\newpage}
+
+% Image width command for consistent sizing
+\newcommand{\figwidth}{0.5\textwidth}
+
+\begin{document}
+
+% Title page
+\input{sections/00_title_page}
+
+% Acknowledgments and Dedication
+\input{sections/00_acknowledgements}
+\input{sections/00_dedication}
+
+% Table of contents and lists
+\tableofcontents
+\newpage
+\listoffigures
+\newpage
+\listoftables
+\newpage
+
+% Abstract
+\input{sections/01_abstract}
+
+% Main content
+\input{sections/02_introduction}
+\input{sections/03_requirements}
+\input{sections/04_architecture}
+\input{sections/05_scraping}
+\input{sections/06_user_management}
+\input{sections/07_financial_analysis}
+\input{sections/08_powerbi}
+\input{sections/09_testing}
+\input{sections/10_web_platform}
+\input{sections/11_implementation}
+\input{sections/12_conclusion}
+
+% Bibliography
+\input{sections/13_bibliography}
+
+\end{document}

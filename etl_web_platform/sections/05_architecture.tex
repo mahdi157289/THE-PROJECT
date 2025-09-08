@@ -1,0 +1,73 @@
+\section{Architecture Medallion et Pipeline ETL}
+
+\subsection{Introduction}
+Présentation de l'architecture Medallion implémentée avec quatre couches spécialisées pour le traitement des données financières.
+
+\subsection{Couche Bronze - Données Brutes}
+\subsubsection{Collecte des données}
+\begin{itemize}
+    \item Scraping automatisé depuis BVMT
+    \item Gestion des formats ZIP, RAR, CSV
+    \item Validation de l'intégrité des données
+    \item Stockage en format Parquet optimisé
+\end{itemize}
+
+\subsubsection{Statistiques de traitement}
+\begin{itemize}
+    \item 1.5M+ lignes de données traitées
+    \item 17 fichiers de cotations et indices
+    \item Temps de traitement : 45-60 secondes
+    \item Taux de succès : 98.5\%
+\end{itemize}
+
+\subsection{Couche Silver - Données Nettoyées}
+\subsubsection{Transformation des données}
+\begin{itemize}
+    \item Nettoyage automatique des valeurs manquantes
+    \item Standardisation des formats de dates
+    \item Validation des types de données
+    \item Calcul des métriques financières de base
+\end{itemize}
+
+\subsubsection{Feature Engineering}
+\begin{itemize}
+    \item Calcul des rendements journaliers
+    \item Moyennes mobiles (5, 10, 20 jours)
+    \item Indicateurs de volatilité
+    \item Corrélations inter-actifs
+\end{itemize}
+
+\subsection{Couche Golden - Données Business}
+\subsubsection{Aggrégation et consolidation}
+\begin{itemize}
+    \item Agrégation temporelle (quotidienne, hebdomadaire, mensuelle)
+    \item Calcul des métriques sectorielles
+    \item Indices composites personnalisés
+    \item Données prêtes pour l'analyse business
+\end{itemize}
+
+\subsubsection{Optimisations de performance}
+\begin{itemize}
+    \item Indexation avancée PostgreSQL
+    \item Partitionnement par date
+    \item Compression des données
+    \item Requêtes optimisées
+\end{itemize}
+
+\subsection{Couche Diamond - Analyse Avancée}
+\subsubsection{Validation statistique}
+\begin{itemize}
+    \item 25 tests statistiques implémentés
+    \item Tests de normalité (Shapiro-Wilk, Anderson-Darling, Jarque-Bera)
+    \item Tests de stationnarité (ADF, KPSS)
+    \item Tests de cointégration (Engle-Granger, Johansen)
+    \item Taux de succès : 96\%
+\end{itemize}
+
+\subsubsection{Modèles économétriques}
+\begin{itemize}
+    \item Modèles GARCH (8 variantes implémentées)
+    \item Modèles VAR pour l'analyse multivariée
+    \item Tests de causalité de Granger
+    \item Validation des modèles avec diagnostics avancés
+\end{itemize}

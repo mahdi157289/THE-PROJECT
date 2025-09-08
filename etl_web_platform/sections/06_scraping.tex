@@ -1,0 +1,38 @@
+\section{Scraping et Collecte de Données}
+
+\subsection{Introduction}
+Système de scraping automatisé pour la collecte des données financières depuis la BVMT.
+
+\subsection{Architecture du scraper}
+\subsubsection{Composants principaux}
+\begin{itemize}
+    \item Module de téléchargement automatique
+    \item Gestion des formats de fichiers (ZIP, RAR)
+    \item Extraction et validation des données CSV
+    \item Système de logging et monitoring
+\end{itemize}
+
+\subsubsection{Gestion des erreurs}
+\begin{itemize}
+    \item Retry automatique en cas d'échec
+    \item Validation de l'intégrité des fichiers
+    \item Notifications d'erreurs
+    \item Rollback en cas de problème
+\end{itemize}
+
+\subsection{Données collectées}
+\subsubsection{Cotations boursières}
+\begin{itemize}
+    \item Prix d'ouverture, fermeture, haut, bas
+    \item Volumes de transactions
+    \item Nombre de transactions
+    \item Données historiques complètes
+\end{itemize}
+
+\subsubsection{Indices boursiers}
+\begin{itemize}
+    \item Indice TUNINDEX
+    \item Indices sectoriels
+    \item Variations et rendements
+    \item Métriques de marché
+\end{itemize}

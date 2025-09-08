@@ -1,26 +1,160 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&family=Roboto:wght@300;400;500;700&family=Montserrat:wght@300;400;500;600;700;800&family=Source+Serif+4:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Global styles for dark theme */
+@layer base {
+  * {
+    @apply transition-colors duration-200;
+  }
+  
+  body {
+    @apply bg-dark-bg text-pure-white font-sans;
+    background-color: #000000;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  html {
+    background-color: #000000;
+    scroll-behavior: smooth;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-semibold;
+    font-family: 'Poppins', system-ui, sans-serif;
+  }
+  
+  code, pre {
+    @apply font-mono;
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
 /* Custom styles for ETL Platform */
 @layer components {
   .btn-primary {
-    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+    @apply bg-light-green hover:bg-primary-600 text-dark-bg font-medium py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg;
   }
   
   .btn-secondary {
-    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+    @apply bg-light-silver hover:bg-secondary-600 text-dark-bg font-medium py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg;
   }
   
   .card {
-    @apply bg-white rounded-lg shadow-md border border-gray-200 p-6;
+    @apply bg-background-secondary rounded-lg shadow-lg border border-light-silver p-6 transition-all duration-300 hover:shadow-xl hover:scale-[1.02];
   }
   
   .sidebar-item {
-    @apply flex items-center px-4 py-3 text-gray-700 hover:bg-gray-100 hover:text-primary-600 rounded-lg transition-colors duration-200;
+    @apply flex items-center px-4 py-3 text-crystal-white hover:bg-background-tertiary hover:text-light-green rounded-lg transition-all duration-300 transform hover:scale-105;
   }
   
   .sidebar-item.active {
-    @apply bg-primary-50 text-primary-600 font-medium;
+    @apply bg-light-green text-dark-bg font-medium shadow-lg;
+  }
+  
+  /* Enhanced utility classes for the color palette */
+  .bg-main {
+    @apply bg-dark-bg;
+  }
+  
+  .bg-card {
+    @apply bg-background-secondary;
+  }
+  
+  .text-main {
+    @apply text-pure-white;
+  }
+  
+  .text-secondary {
+    @apply text-crystal-white;
+  }
+  
+  .text-accent {
+    @apply text-light-green;
+  }
+  
+  .text-muted {
+    @apply text-pearl-white;
+  }
+  
+  .border-main {
+    @apply border-light-silver;
+  }
+  
+  .border-accent {
+    @apply border-light-green;
+  }
+  
+  /* Animation classes */
+  .animate-fade-in {
+    @apply animate-fade-in;
+  }
+  
+  .animate-slide-up {
+    @apply animate-slide-up;
+  }
+  
+  .animate-scale-in {
+    @apply animate-scale-in;
+  }
+  
+  .animate-bounce-in {
+    @apply animate-bounce-in;
+  }
+  
+  .animate-glow {
+    @apply animate-glow;
+  }
+  
+  /* Hover effects */
+  .hover-lift {
+    @apply transition-all duration-300 transform hover:scale-105 hover:shadow-xl;
+  }
+  
+  /* Enhanced card shadows */
+  .card-shadow {
+    @apply shadow-lg;
+  }
+  
+  .card-shadow-hover {
+    @apply transition-all duration-300 hover:shadow-2xl hover:shadow-light-green/10;
+  }
+  
+  .hover-glow {
+    @apply transition-all duration-300 hover:shadow-lg hover:shadow-light-green/25;
+  }
+  
+  /* Glass morphism effect */
+  .glass {
+    @apply bg-background-secondary bg-opacity-80 backdrop-blur-sm border border-light-silver border-opacity-20;
+  }
+  
+  /* Gradient text */
+  .text-gradient {
+    @apply bg-gradient-to-r from-light-green to-crystal-white bg-clip-text text-transparent;
+  }
+  
+  /* Custom scrollbar */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #90EE90 #1A1A1A;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-background-primary;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-light-green rounded-full;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary-600;
   }
 }

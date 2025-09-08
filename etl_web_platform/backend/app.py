@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+# from flask_session import Session  # Using built-in Flask sessions instead
 import psycopg2
 import psycopg2.extras
 import os
@@ -21,7 +22,33 @@ logger = logging.getLogger(__name__)
 
 # Create Flask app instance
 app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend communication
+
+# Session configuration - Use built-in Flask sessions instead of Flask-Session
+app.config['SECRET_KEY'] = 'your-secret-key-change-this-in-production'
+app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hour
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Allow cross-origin cookies
+app.config['SESSION_COOKIE_SECURE'] = False  # Allow HTTP in development
+app.config['SESSION_COOKIE_HTTPONLY'] = False  # Allow JavaScript access for debugging
+app.config['SESSION_COOKIE_NAME'] = 'bvmt_session'  # Custom session name
+app.config['SESSION_COOKIE_DOMAIN'] = None  # Allow localhost
+app.config['SESSION_COOKIE_PATH'] = '/'  # Available for all paths
+
+# Don't use Flask-Session extension - use built-in Flask sessions
+# Session(app)  # Commented out to use built-in sessions
+
+# Enable CORS for frontend communication
+import os
+
+# Get CORS origins from environment variable for production flexibility
+cors_origins = os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173').split(',')
+
+# Configure CORS with production and development origins
+CORS(app, 
+     supports_credentials=True,
+     origins=cors_origins,
+     allow_headers=['Content-Type', 'Authorization', 'X-Requested-With'],
+     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+     expose_headers=['Content-Range', 'X-Content-Range'])
 
 # Simple test route
 @app.route('/', methods=['GET'])
@@ -152,46 +179,7 @@ def get_etl_status():
             'details': str(e)
         }), 500
 
-# Get scraping status
-@app.route('/api/scraping/status', methods=['GET'])
-def get_scraping_status():
-    """Get current scraping job status from database"""
-    try:
-        conn = get_db_connection()
-        if not conn:
-            return jsonify({'error': 'Database connection failed'}), 500
-        
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        
-        # Query to get scraping status
-        # This will be customized based on your actual database schema
-        cursor.execute("""
-            SELECT 
-                'BVMT Cotations' as name,
-                'completed' as status,
-                '2 hours ago' as last_run,
-                15000 as records,
-                '45m' as duration,
-                0 as errors,
-                1 as warnings
-        """)
-        
-        scraping_jobs = cursor.fetchall()
-        cursor.close()
-        conn.close()
-        
-        return jsonify({
-            'status': 'success',
-            'data': scraping_jobs,
-            'timestamp': datetime.now().isoformat()
-        }), 200
-        
-    except Exception as e:
-        logger.error(f"Scraping status error: {e}")
-        return jsonify({
-            'error': 'Failed to fetch scraping status',
-            'details': str(e)
-        }), 500
+# Scraping endpoints are now handled by scraping_api.py blueprint
 
 # Get system statistics
 @app.route('/api/system/stats', methods=['GET'])
@@ -220,6 +208,62 @@ def get_system_stats():
             'details': str(e)
         }), 500
 
+# Import and register scraping blueprint
+try:
+    from scraping_api import scraping_bp
+    app.register_blueprint(scraping_bp)
+    print("✅ Scraping API blueprint registered successfully")
+except ImportError as e:
+    print(f"⚠️  Scraping API blueprint not loaded: {e}")
+
+# Import and register bronze blueprint
+try:
+    from bronze_api import bronze_bp
+    app.register_blueprint(bronze_bp)
+    print("✅ Bronze API blueprint registered successfully")
+except ImportError as e:
+    print(f"⚠️  Bronze API blueprint not loaded: {e}")
+
+# Import and register silver blueprint
+try:
+    from silver_api import silver_bp
+    app.register_blueprint(silver_bp)
+    print("✅ Silver API blueprint registered successfully")
+except ImportError as e:
+    print(f"⚠️  Silver API blueprint not loaded: {e}")
+
+# Import and register golden blueprint
+try:
+    from golden_api import golden_bp
+    app.register_blueprint(golden_bp)
+    print("✅ Golden API blueprint registered successfully")
+except ImportError as e:
+    print(f"⚠️  Golden API blueprint not loaded: {e}")
+
+# Import and register diamond blueprint
+try:
+    from diamond_api import diamond_bp
+    app.register_blueprint(diamond_bp)
+    print("✅ Diamond API blueprint registered successfully")
+except ImportError as e:
+    print(f"⚠️  Diamond API blueprint not loaded: {e}")
+
+# Import and register AI bot blueprint
+try:
+    from ai_bot_api import ai_bot_bp
+    app.register_blueprint(ai_bot_bp)
+    print("✅ BVMT Expert AI Bot API blueprint registered successfully")
+except ImportError as e:
+    print(f"⚠️  AI Bot API blueprint not loaded: {e}")
+
+# Import and register auth blueprint
+try:
+    from auth_api import auth_bp
+    app.register_blueprint(auth_bp)
+    print("✅ Authentication API blueprint registered successfully")
+except ImportError as e:
+    print(f"⚠️  Auth API blueprint not loaded: {e}")
+
 # Test the app can be imported
 if __name__ == '__main__':
     print("🔗 Testing Flask app import...")
@@ -228,3 +272,6 @@ if __name__ == '__main__':
     for rule in app.url_map.iter_rules():
         print(f"   {rule.endpoint}: {rule.rule}")
     print("\n🚀 Use 'python server.py' to start the server with Waitress")
+
+
+

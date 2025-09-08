@@ -1,0 +1,49 @@
+\section{Scraping et Collecte de Données}
+
+\subsection{Introduction}
+Système automatisé de collecte de données financières depuis la Bourse des Valeurs Mobilières de Tunis (BVMT).
+
+\subsection{Processus de Scraping}
+Notre système de scraping automatique collecte quotidiennement les données de cotations et d'indices depuis le site officiel de la BVMT.
+
+\subsubsection{Sources de données}
+\begin{itemize}
+    \item Site officiel BVMT (www.bvmt.com.tn)
+    \item Données de cotations en temps réel
+    \item Indices boursiers tunisiens
+    \item Données historiques archivées
+\end{itemize}
+
+% Scraping Process Diagram
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\figwidth]{img/scraping_process.png}
+    \caption{Processus de scraping automatisé BVMT}
+    \label{fig:scraping_process}
+\end{figure}
+
+\subsubsection{Gestion des formats de fichiers}
+Le système gère automatiquement plusieurs formats de fichiers :
+\begin{itemize}
+    \item \textbf{ZIP} : Archives compressées
+    \item \textbf{RAR} : Archives RAR
+    \item \textbf{CSV} : Données tabulaires
+    \item \textbf{Excel} : Fichiers .xlsx et .xls
+\end{itemize}
+
+\subsubsection{Validation et contrôle qualité}
+\begin{itemize}
+    \item Vérification de l'intégrité des fichiers
+    \item Validation des métadonnées
+    \item Contrôle de la cohérence des données
+    \item Gestion des erreurs de téléchargement
+\end{itemize}
+
+\subsection{Statistiques de collecte}
+\begin{itemize}
+    \item \textbf{Fréquence} : Collecte quotidienne automatique
+    \item \textbf{Volume} : 1.5M+ lignes de données traitées
+    \item \textbf{Fichiers} : 17 types de cotations et indices
+    \item \textbf{Temps de traitement} : 45-60 secondes par session
+    \item \textbf{Taux de succès} : 98.5\%
+\end{itemize}

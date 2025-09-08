@@ -1,50 +1,111 @@
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import EnhancedBronzeLayer from '../components/bronze/EnhancedBronzeLayer';
+import SilverLayerMonitor from '../components/silver/SilverLayerMonitor';
+import GoldenLayerMonitor from '../components/golden/GoldenLayerMonitor';
+import DiamondLayerMonitor from '../components/diamond/DiamondLayerMonitor';
 
-// Trophy component for ETL layers
-const LayerTrophy = ({ layer, size = "w-10 h-10" }) => {
-  const getTrophyStyle = (layer) => {
+// Medal component for ETL layers
+const LayerMedal = ({ layer, size = "w-10 h-10" }) => {
+  const getMedalConfig = (layer) => {
     switch (layer.toLowerCase()) {
       case 'bronze':
-        return `text-amber-600 ${size}`
+        return {
+          medal: '🥉',
+          color: 'text-amber-500'
+        }
       case 'silver':
-        return `text-gray-500 ${size}`
+        return {
+          medal: '🥈',
+          color: 'text-gray-400'
+        }
       case 'golden':
-        return `text-yellow-500 ${size}`
+        return {
+          medal: '🥇',
+          color: 'text-yellow-400'
+        }
       case 'diamond':
-        return `text-blue-600 ${size}`
+        return {
+          medal: '💎',
+          color: 'text-blue-400'
+        }
       default:
-        return `text-gray-500 ${size}`
+        return {
+          medal: '🏆',
+          color: 'text-gray-400'
+        }
     }
   }
 
+  const config = getMedalConfig(layer)
+
   return (
-    <div className={getTrophyStyle(layer)}>
-      <svg fill="currentColor" viewBox="0 0 20 20">
-        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-      </svg>
-    </div>
+    <motion.div 
+      className={`${size} flex items-center justify-center`}
+      whileHover={{ scale: 1.2, rotate: 5 }}
+      whileTap={{ scale: 0.9 }}
+      transition={{ duration: 0.2 }}
+    >
+      <span className={`text-4xl ${config.color} drop-shadow-lg`}>
+        {config.medal}
+      </span>
+    </motion.div>
   )
 }
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      ease: "easeOut"
+    }
+  }
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, scale: 0.9 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: {
+      duration: 0.3,
+      ease: "easeOut"
+    }
+  }
+};
+
 export default function ETLPipeline() {
-  const [pipelines] = useState([
+  const [pipelines, setPipelines] = useState([
     {
       id: 1,
       name: 'Bronze Layer',
       description: 'Raw data ingestion and storage',
-      status: 'running',
-      progress: 85,
-      recordsProcessed: 1250000,
-      totalRecords: 1500000,
-      duration: '2h 15m',
+      status: 'idle',
+      progress: 0,
+      recordsProcessed: 0,
+      totalRecords: 0,
+      duration: '0s',
       errors: 0,
-      warnings: 2,
-      lastRun: '2 hours ago',
-      nextRun: 'In 6 hours',
+      warnings: 0,
+      lastRun: 'Never',
+      nextRun: 'On-demand',
       config: {
         source: 'BVMT Scraper',
         destination: 'PostgreSQL',
-        schedule: 'Every 6 hours',
+        schedule: 'On-demand',
         retention: '30 days'
       }
     },
@@ -52,19 +113,19 @@ export default function ETLPipeline() {
       id: 2,
       name: 'Silver Layer',
       description: 'Data cleaning and validation',
-      status: 'running',
-      progress: 67,
-      recordsProcessed: 980000,
-      totalRecords: 1250000,
-      duration: '1h 45m',
+      status: 'idle',
+      progress: 0,
+      recordsProcessed: 0,
+      totalRecords: 0,
+      duration: '0s',
       errors: 0,
-      warnings: 1,
-      lastRun: '1 hour ago',
-      nextRun: 'In 5 hours',
+      warnings: 0,
+      lastRun: 'Never',
+      nextRun: 'On-demand',
       config: {
         source: 'Bronze Layer',
         destination: 'PostgreSQL',
-        schedule: 'Every 6 hours',
+        schedule: 'On-demand',
         retention: '30 days'
       }
     },
@@ -76,16 +137,16 @@ export default function ETLPipeline() {
       progress: 0,
       recordsProcessed: 0,
       totalRecords: 0,
-      duration: '0m',
+      duration: '0s',
       errors: 0,
       warnings: 0,
       lastRun: 'Never',
-      nextRun: 'When Silver completes',
+      nextRun: 'On-demand',
       config: {
         source: 'Silver Layer',
         destination: 'PostgreSQL',
         schedule: 'On-demand',
-        retention: '90 days'
+        retention: '30 days'
       }
     },
     {
@@ -96,240 +157,358 @@ export default function ETLPipeline() {
       progress: 0,
       recordsProcessed: 0,
       totalRecords: 0,
-      duration: '0m',
+      duration: '0s',
       errors: 0,
       warnings: 0,
       lastRun: 'Never',
-      nextRun: 'When Golden completes',
+      nextRun: 'On-demand',
       config: {
         source: 'Golden Layer',
-        destination: 'PostgreSQL + ML Models',
-        schedule: 'Daily',
-        retention: '1 year'
+        destination: 'PostgreSQL',
+        schedule: 'On-demand',
+        retention: '30 days'
       }
     }
-  ])
+  ]);
+
+  // Fetch real data from all layer APIs
+  useEffect(() => {
+    const fetchAllLayerData = async () => {
+      try {
+        // Fetch data from all layer APIs
+        const [bronzeRes, silverRes, goldenRes, diamondRes] = await Promise.all([
+          fetch('http://127.0.0.1:5000/api/bronze/status'),
+          fetch('http://127.0.0.1:5000/api/silver/status'),
+          fetch('http://127.0.0.1:5000/api/golden/status'),
+          fetch('http://127.0.0.1:5000/api/diamond/status')
+        ]);
+
+        const [bronzeData, silverData, goldenData, diamondData] = await Promise.all([
+          bronzeRes.json(),
+          silverRes.json(),
+          goldenRes.json(),
+          diamondRes.json()
+        ]);
+
+        // Update pipelines with real data
+        setPipelines(prev => prev.map(pipeline => {
+          let layerData;
+          switch (pipeline.name) {
+            case 'Bronze Layer':
+              layerData = bronzeData.data;
+              return {
+                ...pipeline,
+                status: layerData.status || 'idle',
+                progress: layerData.progress || 0,
+                recordsProcessed: layerData.dataStats?.cotations?.rows || 0,
+                totalRecords: (layerData.dataStats?.cotations?.rows || 0) + (layerData.dataStats?.indices?.rows || 0),
+                duration: layerData.performance?.totalDuration ? `${Math.round(layerData.performance.totalDuration)}s` : '0s',
+                lastRun: layerData.lastRun ? new Date(layerData.lastRun).toLocaleTimeString() : 'Never',
+                errors: 0,
+                warnings: 0
+              };
+            case 'Silver Layer':
+              layerData = silverData.data;
+              return {
+                ...pipeline,
+                status: layerData.status || 'idle',
+                progress: layerData.progress || 0,
+                recordsProcessed: layerData.dataStats?.outputRows?.cotations || 0,
+                totalRecords: (layerData.dataStats?.inputRows?.cotations || 0) + (layerData.dataStats?.inputRows?.indices || 0),
+                duration: layerData.dataStats?.transformationStats?.processingTime ? `${Math.round(layerData.dataStats.transformationStats.processingTime)}s` : '0s',
+                lastRun: layerData.lastRun ? new Date(layerData.lastRun).toLocaleTimeString() : 'Never',
+                errors: 0,
+                warnings: 0
+              };
+            case 'Golden Layer':
+              layerData = goldenData.data;
+              return {
+                ...pipeline,
+                status: layerData.status || 'idle',
+                progress: layerData.progress || 0,
+                recordsProcessed: layerData.dataStats?.outputRows?.cotations || 0,
+                totalRecords: (layerData.dataStats?.inputRows?.cotations || 0) + (layerData.dataStats?.inputRows?.indices || 0),
+                duration: layerData.dataStats?.transformationStats?.processingTime ? `${Math.round(layerData.dataStats.transformationStats.processingTime)}s` : '0s',
+                lastRun: layerData.lastRun ? new Date(layerData.lastRun).toLocaleTimeString() : 'Never',
+                errors: 0,
+                warnings: 0
+              };
+            case 'Diamond Layer':
+              layerData = diamondData.data;
+              return {
+                ...pipeline,
+                status: layerData.status || 'idle',
+                progress: layerData.progress || 0,
+                recordsProcessed: layerData.dataStats?.outputRows?.cotations || 0,
+                totalRecords: (layerData.dataStats?.inputRows?.cotations || 0) + (layerData.dataStats?.inputRows?.indices || 0),
+                duration: layerData.dataStats?.transformationStats?.processingTime ? `${Math.round(layerData.dataStats.transformationStats.processingTime)}s` : '0s',
+                lastRun: layerData.lastRun ? new Date(layerData.lastRun).toLocaleTimeString() : 'Never',
+                errors: 0,
+                warnings: 0
+              };
+            default:
+              return pipeline;
+          }
+        }));
+      } catch (error) {
+        console.error('Failed to fetch layer data:', error);
+      }
+    };
+
+    fetchAllLayerData();
+    const interval = setInterval(fetchAllLayerData, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Handle layer execution
+  const handleLayerAction = async (pipelineName, action) => {
+    try {
+      let endpoint;
+      switch (pipelineName) {
+        case 'Bronze Layer':
+          endpoint = 'http://127.0.0.1:5000/api/bronze/run';
+          break;
+        case 'Silver Layer':
+          endpoint = 'http://127.0.0.1:5000/api/silver/run';
+          break;
+        case 'Golden Layer':
+          endpoint = 'http://127.0.0.1:5000/api/golden/run';
+          break;
+        case 'Diamond Layer':
+          endpoint = 'http://127.0.0.1:5000/api/diamond/run';
+          break;
+        default:
+          console.error('Unknown pipeline:', pipelineName);
+          return;
+      }
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      
+      if (data.status === 'success') {
+        console.log(`${pipelineName} ${action} started successfully`);
+        // Update the specific pipeline status immediately
+        setPipelines(prev => prev.map(pipeline => 
+          pipeline.name === pipelineName 
+            ? { ...pipeline, status: 'running', progress: 0 }
+            : pipeline
+        ));
+      } else {
+        console.error(`Failed to ${action} ${pipelineName}:`, data.message);
+      }
+    } catch (error) {
+      console.error(`Error ${action}ing ${pipelineName}:`, error);
+    }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'running': return 'text-green-600 bg-green-100'
-      case 'completed': return 'text-blue-600 bg-blue-100'
-      case 'idle': return 'text-gray-600 bg-gray-100'
-      case 'paused': return 'text-yellow-600 bg-yellow-100'
-      case 'error': return 'text-red-600 bg-red-100'
-      default: return 'text-gray-600 bg-gray-100'
+      case 'running': return 'text-light-green bg-light-green bg-opacity-20'
+      case 'completed': return 'text-crystal-white bg-crystal-white bg-opacity-20'
+      case 'idle': return 'text-pearl-white bg-pearl-white bg-opacity-10'
+      case 'error': return 'text-red-400 bg-red-400 bg-opacity-20'
+      default: return 'text-pearl-white bg-pearl-white bg-opacity-10'
     }
   }
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'running': return <span className="w-5 h-5 bg-green-500 rounded-full"></span>
-      case 'completed': return <span className="w-5 h-5 bg-blue-500 rounded-full"></span>
-      case 'idle': return <span className="w-5 h-5 bg-gray-500 rounded-full"></span>
-      case 'paused': return <span className="w-5 h-5 bg-yellow-500 rounded-full"></span>
-      case 'error': return <span className="w-5 h-5 bg-red-500 rounded-full"></span>
-      default: return <span className="w-5 h-5 bg-gray-500 rounded-full"></span>
+      case 'running': return <span className="w-5 h-5 bg-light-green rounded-full animate-pulse"></span>
+      case 'completed': return <span className="w-5 h-5 bg-crystal-white rounded-full"></span>
+      case 'idle': return <span className="w-5 h-5 bg-pearl-white bg-opacity-50 rounded-full"></span>
+      case 'error': return <span className="w-5 h-5 bg-red-400 rounded-full"></span>
+      default: return <span className="w-5 h-5 bg-pearl-white bg-opacity-50 rounded-full"></span>
     }
   }
 
-  // Extract layer name for trophy
-  const getLayerName = (fullName) => {
-    if (fullName.includes('Bronze')) return 'Bronze'
-    if (fullName.includes('Silver')) return 'Silver'
-    if (fullName.includes('Golden')) return 'Golden'
-    if (fullName.includes('Diamond')) return 'Diamond'
-    return 'Unknown'
-  }
-
-  const handlePipelineAction = (pipelineId, action) => {
-    console.log(`Pipeline ${pipelineId}: ${action}`)
-    // TODO: Implement actual pipeline control logic
-  }
-
   return (
-    <div className="space-y-6">
+    <motion.div 
+      className="space-y-6"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">ETL Pipeline Management</h1>
-          <p className="mt-2 text-gray-600">
-            Monitor and control your data pipeline layers
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <button className="btn-primary">
-            Start All Pipelines
-          </button>
-          <button className="btn-secondary">
-            Stop All Pipelines
-          </button>
-          <button className="btn-secondary">
-            <span className="w-4 h-4 bg-gray-500 rounded mr-2"></span>
-            Refresh Status
-          </button>
-        </div>
-      </div>
+      <motion.div variants={itemVariants}>
+        <h1 className="text-4xl font-serif font-bold text-pure-white mb-2 text-center">ETL Pipeline Monitor</h1>
+        <p className="text-lg text-crystal-white font-sans text-center">
+          Monitor and manage your Medallion Architecture data pipeline layers
+        </p>
+        
+        {/* Long Interrupted Line */}
+        <motion.div 
+          className="flex justify-center my-6"
+          variants={itemVariants}
+        >
+          <div className="w-96 h-0.5 bg-gradient-to-r from-transparent via-light-green to-transparent opacity-60"></div>
+        </motion.div>
+      </motion.div>
 
-      {/* Pipeline Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Pipeline Overview */}
+      <motion.div 
+        className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6"
+        variants={containerVariants}
+      >
         {pipelines.map((pipeline, index) => (
-          <div
+          <motion.div
             key={pipeline.id}
-            className="bg-white rounded-lg shadow-md border border-gray-200 p-6 hover:shadow-lg transition-shadow duration-200"
+            className="bg-background-secondary rounded-lg shadow-lg border border-light-silver p-6 hover-lift glass"
+            variants={cardVariants}
+            whileHover={{ scale: 1.05, boxShadow: "0 20px 40px rgba(144, 238, 144, 0.15)" }}
           >
-            {/* Header */}
-            <div className="flex justify-between items-start mb-4">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center">
-                <LayerTrophy layer={getLayerName(pipeline.name)} />
+                <LayerMedal layer={pipeline.name.split(' ')[0]} />
                 <div className="ml-3">
-                  <h3 className="text-lg font-semibold text-gray-900">{pipeline.name}</h3>
-                  <p className="text-sm text-gray-600">{pipeline.description}</p>
+                  <h3 className="text-lg font-display font-semibold text-pure-white text-center">{pipeline.name}</h3>
+                  <p className="text-sm text-crystal-white text-center">{pipeline.description}</p>
                 </div>
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(pipeline.status)}`}>
+              <motion.span 
+                className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(pipeline.status)}`}
+                whileHover={{ scale: 1.05 }}
+              >
                 {pipeline.status}
-              </span>
+              </motion.span>
             </div>
 
-            {/* Progress Bar */}
             {pipeline.status === 'running' && (
               <div className="mb-4">
-                <div className="flex justify-between text-sm text-gray-600 mb-2">
+                <div className="flex justify-between text-sm text-crystal-white mb-2">
                   <span>Progress</span>
                   <span>{pipeline.progress}%</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div 
-                    className="bg-blue-600 h-3 rounded-full transition-all duration-300"
-                    style={{ width: `${pipeline.progress}%` }}
-                  ></div>
-                </div>
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>{pipeline.recordsProcessed.toLocaleString()} / {pipeline.totalRecords.toLocaleString()} records</span>
-                  <span>{pipeline.duration}</span>
+                <div className="w-full bg-background-primary rounded-full h-3 overflow-hidden">
+                  <motion.div 
+                    className="bg-light-green h-3 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${pipeline.progress}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                  ></motion.div>
                 </div>
               </div>
             )}
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="text-center p-3 bg-gray-50 rounded-lg">
-                <p className="text-2xl font-bold text-gray-900">{pipeline.recordsProcessed.toLocaleString()}</p>
-                <p className="text-xs text-gray-600">Records Processed</p>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-crystal-white">Records</span>
+                <span className="font-display font-medium text-pure-white">
+                  {pipeline.recordsProcessed.toLocaleString()} / {pipeline.totalRecords.toLocaleString()}
+                </span>
               </div>
-              <div className="text-center p-3 bg-gray-50 rounded-lg">
-                <p className="text-2xl font-bold text-gray-900">{pipeline.errors}</p>
-                <p className="text-xs text-gray-600">Errors</p>
+              <div className="flex justify-between">
+                <span className="text-crystal-white">Duration</span>
+                <span className="font-display font-medium text-pure-white">{pipeline.duration}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-crystal-white">Errors/Warnings</span>
+                <span className="font-display font-medium">
+                  <span className="text-red-400">{pipeline.errors}</span>
+                  <span className="text-crystal-white mx-1">/</span>
+                  <span className="text-yellow-400">{pipeline.warnings}</span>
+                </span>
               </div>
             </div>
 
-            {/* Configuration */}
-            <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-              <h4 className="text-sm font-medium text-blue-900 mb-2">Configuration</h4>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <span className="text-blue-700">Source:</span>
-                  <span className="ml-1 text-gray-700">{pipeline.config.source}</span>
+            <div className="mt-4 pt-4 border-t border-light-silver">
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-pearl-white">Last Run</span>
+                  <span className="text-crystal-white">{pipeline.lastRun}</span>
                 </div>
-                <div>
-                  <span className="text-blue-700">Schedule:</span>
-                  <span className="ml-1 text-gray-700">{pipeline.config.schedule}</span>
+                <div className="flex justify-between">
+                  <span className="text-pearl-white">Next Run</span>
+                  <span className="text-crystal-white">{pipeline.nextRun}</span>
                 </div>
               </div>
             </div>
 
-            {/* Status Info */}
-            <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-              <div>
-                <p className="text-gray-600">Last Run</p>
-                <p className="font-medium">{pipeline.lastRun}</p>
-              </div>
-              <div>
-                <p className="text-gray-600">Next Run</p>
-                <p className="font-medium">{pipeline.nextRun}</p>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-2">
-              {pipeline.status === 'idle' && (
-                <button 
-                  onClick={() => handlePipelineAction(pipeline.id, 'start')}
-                  className="btn-primary text-sm py-2 px-3"
-                >
-                  <span className="w-4 h-4 bg-white rounded mr-1"></span>
-                  Start
-                </button>
-              )}
-              {pipeline.status === 'running' && (
-                <>
-                  <button 
-                    onClick={() => handlePipelineAction(pipeline.id, 'pause')}
-                    className="btn-secondary text-sm py-2 px-3"
-                  >
-                    <span className="w-4 h-4 bg-gray-500 rounded mr-1"></span>
-                    Pause
-                  </button>
-                  <button 
-                    onClick={() => handlePipelineAction(pipeline.id, 'stop')}
-                    className="btn-secondary text-sm py-2 px-3"
-                  >
-                    <span className="w-4 h-4 bg-gray-500 rounded mr-1"></span>
-                    Stop
-                  </button>
-                </>
-              )}
-              {pipeline.status === 'paused' && (
-                <button 
-                  onClick={() => handlePipelineAction(pipeline.id, 'resume')}
-                  className="btn-primary text-sm py-2 px-3"
-                >
-                  <span className="w-4 h-4 bg-white rounded mr-1"></span>
-                  Resume
-                </button>
-              )}
-              <button 
-                onClick={() => handlePipelineAction(pipeline.id, 'restart')}
-                className="btn-secondary text-sm py-2 px-3"
+            <div className="mt-4 flex space-x-2 justify-center">
+              <motion.button 
+                className="bg-light-green hover:bg-primary-600 text-dark-bg font-display font-medium py-2 px-6 rounded-lg transition-all duration-300 text-sm"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleLayerAction(pipeline.name, pipeline.status === 'running' ? 'stop' : 'start')}
+                disabled={pipeline.status === 'running'}
               >
-                <span className="w-4 h-4 bg-gray-500 rounded mr-1"></span>
-                Restart
-              </button>
+                {pipeline.status === 'running' ? 'Running...' : 'Start'}
+              </motion.button>
+              <motion.button 
+                className="bg-crystal-white hover:bg-secondary-600 text-dark-bg font-display font-medium py-2 px-6 rounded-lg transition-all duration-300 text-sm"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => console.log(`Configure ${pipeline.name}`)}
+              >
+                Configure
+              </motion.button>
             </div>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
-      {/* Global Pipeline Stats */}
-      <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Pipeline Overview</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-green-600">
-              {pipelines.filter(p => p.status === 'running').length}
-            </div>
-            <div className="text-sm text-gray-600">Active Pipelines</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-blue-600">
-              {pipelines.filter(p => p.status === 'completed').length}
-            </div>
-            <div className="text-sm text-gray-600">Completed</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-yellow-600">
-              {pipelines.filter(p => p.status === 'paused').length}
-            </div>
-            <div className="text-sm text-gray-600">Paused</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-red-600">
-              {pipelines.filter(p => p.status === 'error').length}
-            </div>
-            <div className="text-sm text-gray-600">Errors</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
+      {/* Interrupted Line */}
+      <motion.div 
+        className="flex justify-center my-8"
+        variants={itemVariants}
+      >
+        <div className="w-48 h-0.5 bg-gradient-to-r from-transparent via-light-green to-transparent opacity-60"></div>
+      </motion.div>
+
+      {/* Layer Details */}
+      <motion.div 
+        className="space-y-6"
+        variants={containerVariants}
+      >
+        <motion.div variants={itemVariants}>
+          <h2 className="text-2xl font-serif font-semibold text-pure-white mb-6 text-center">Layer Details</h2>
+        </motion.div>
+
+        <motion.div variants={cardVariants}>
+          <EnhancedBronzeLayer />
+        </motion.div>
+
+        {/* Interrupted Line */}
+        <motion.div 
+          className="flex justify-center my-6"
+          variants={itemVariants}
+        >
+          <div className="w-48 h-0.5 bg-gradient-to-r from-transparent via-light-green to-transparent opacity-60"></div>
+        </motion.div>
+
+        <motion.div variants={cardVariants}>
+          <SilverLayerMonitor />
+        </motion.div>
+
+        {/* Interrupted Line */}
+        <motion.div 
+          className="flex justify-center my-6"
+          variants={itemVariants}
+        >
+          <div className="w-48 h-0.5 bg-gradient-to-r from-transparent via-light-green to-transparent opacity-60"></div>
+        </motion.div>
+
+        <motion.div variants={cardVariants}>
+          <GoldenLayerMonitor />
+        </motion.div>
+
+        {/* Interrupted Line */}
+        <motion.div 
+          className="flex justify-center my-6"
+          variants={itemVariants}
+        >
+          <div className="w-48 h-0.5 bg-gradient-to-r from-transparent via-light-green to-transparent opacity-60"></div>
+        </motion.div>
+
+        <motion.div variants={cardVariants}>
+          <DiamondLayerMonitor />
+        </motion.div>
+      </motion.div>
+    </motion.div>
+  );
 }

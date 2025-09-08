@@ -1,0 +1,587 @@
+\chapter{Pipeline ETL Medallion}
+
+\section*{Introduction}
+
+Ce chapitre présente le deuxième sprint de développement consacré à l'implémentation de l'architecture Medallion ETL. Cette architecture sophistiquée, développée par Databricks, permet une transformation progressive des données financières brutes en insights analytiques avancés à travers quatre couches distinctes : Bronze, Silver, Golden et Diamond.
+
+\section{Architecture Medallion ETL}
+
+\subsection{Principe Fondamental}
+
+L'architecture Medallion repose sur le concept de "Lakehouse" qui combine les avantages des data lakes et des data warehouses. Elle organise les données en couches successives, chacune enrichissant et transformant les données de la couche précédente.
+
+% \begin{figure}[H]
+% \centering
+% \includegraphics[width=0.9\columnwidth]{img/medallion_architecture.png}
+% \caption{Architecture Medallion ETL en quatre couches}
+% \label{fig:medallion_architecture}
+% \end{figure}
+
+\textbf{Architecture Medallion ETL - Quatre Couches:}
+\begin{itemize}
+    \item \textbf{Bronze Layer:} Données brutes et non structurées
+    \item \textbf{Silver Layer:} Données nettoyées et validées
+    \item \textbf{Golden Layer:} Données enrichies et transformées
+    \item \textbf{Diamond Layer:} Données analysées et modélisées
+\end{itemize}
+
+\subsection{Avantages de l'Architecture}
+
+\begin{itemize}
+    \item \textbf{Scalabilité} : Gestion efficace de gros volumes de données
+    \item \textbf{Flexibilité} : Adaptation aux changements de schéma
+    \item \textbf{Qualité} : Validation progressive des données
+    \item \textbf{Traceabilité} : Suivi complet des transformations
+    \item \textbf{Performance} : Optimisation des requêtes par couche
+\end{itemize}
+
+\section{Couche Bronze - Données Brutes}
+
+\subsection{Objectifs de la Couche Bronze}
+
+\begin{enumerate}
+    \item \textbf{Ingestion} : Collecte des données depuis le scraper BVMT
+    \item \textbf{Stockage} : Conservation des données brutes sans modification
+    \item \textbf{Traçabilité} : Maintien de l'historique complet
+    \item \textbf{Accessibilité} : Disponibilité immédiate pour les couches supérieures
+\end{enumerate}
+
+\subsection{Structure des Données}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|L|C|C|C|}
+\hline
+\textbf{Table} & \textbf{Description} & \textbf{Volume} & \textbf{Fréquence} \\
+\hline
+bronze\_cotations & Cotations boursières brutes & 800K+ enregistrements & Quotidienne \\
+\hline
+bronze\_indices & Indices boursiers bruts & 100+ enregistrements & Quotidienne \\
+\hline
+bronze\_metadata & Métadonnées des entreprises & 100+ enregistrements & Hebdomadaire \\
+\hline
+bronze\_logs & Logs d'extraction & Variable & Continue \\
+\hline
+\end{tabular}
+\caption{Structure des données de la couche Bronze}
+\label{tab:bronze_structure}
+\end{table}
+
+\subsection{Schéma de Base de Données}
+
+\begin{verbatim}
+-- Table principale des cotations brutes
+CREATE TABLE bronze_cotations (
+    id SERIAL PRIMARY KEY,
+    symbol VARCHAR(10) NOT NULL,
+    company_name VARCHAR(100),
+    price DECIMAL(10,3),
+    volume INTEGER,
+    variation DECIMAL(5,2),
+    high_price DECIMAL(10,3),
+    low_price DECIMAL(10,3),
+    open_price DECIMAL(10,3),
+    market_cap DECIMAL(15,2),
+    extraction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    source_url TEXT,
+    raw_data JSONB,
+    quality_score DECIMAL(3,2)
+);
+
+-- Index pour optimiser les performances
+CREATE INDEX idx_bronze_symbol_date ON bronze_cotations(symbol, extraction_date);
+CREATE INDEX idx_bronze_quality ON bronze_cotations(quality_score);
+\end{verbatim}
+
+\section{Couche Silver - Nettoyage et Validation}
+
+\subsection{Objectifs de la Couche Silver}
+
+\begin{itemize}
+    \item \textbf{Nettoyage} : Suppression des doublons et des valeurs aberrantes
+    \item \textbf{Validation} : Vérification de la cohérence et de l'intégrité
+    \item \textbf{Normalisation} : Standardisation des formats et des unités
+    \item \textbf{Enrichissement} : Ajout de métadonnées et de calculs dérivés
+\end{itemize}
+
+\subsection{Processus de Transformation}
+
+% \begin{figure}[H]
+% \centering
+% \includegraphics[width=0.8\columnwidth]{img/silver_transformation.png}
+% \caption{Processus de transformation Silver}
+% \label{fig:silver_transformation}
+% \end{figure}
+
+\textbf{Processus de Transformation Silver:}
+\begin{enumerate}
+    \item \textbf{Étape 1:} Suppression des doublons et valeurs aberrantes
+    \item \textbf{Étape 2:} Validation de la cohérence des données
+    \item \textbf{Étape 3:} Normalisation des formats et unités
+    \item \textbf{Étape 4:} Enrichissement avec métadonnées
+    \item \textbf{Étape 5:} Calcul du score de qualité
+\end{enumerate}
+
+\subsection{Algorithme de Nettoyage}
+
+\begin{verbatim}
+def clean_silver_data(bronze_data):
+    """Nettoyage des données Bronze vers Silver"""
+    
+    # Suppression des doublons
+    cleaned_data = bronze_data.drop_duplicates(
+        subset=['symbol', 'extraction_date']
+    )
+    
+    # Validation des prix
+    cleaned_data = cleaned_data[
+        (cleaned_data['price'] > 0) &
+        (cleaned_data['price'] < 10000)
+    ]
+    
+    # Validation des volumes
+    cleaned_data = cleaned_data[
+        cleaned_data['volume'] >= 0
+    ]
+    
+    # Calcul du score de qualité
+    cleaned_data['quality_score'] = calculate_quality_score(cleaned_data)
+    
+    return cleaned_data
+\end{verbatim}
+
+\subsection{Schéma de Base de Données Silver}
+
+\begin{verbatim}
+-- Table des cotations nettoyées
+CREATE TABLE silver_cotations (
+    id SERIAL PRIMARY KEY,
+    symbol VARCHAR(10) NOT NULL,
+    company_name VARCHAR(100),
+    price DECIMAL(10,3),
+    volume INTEGER,
+    variation DECIMAL(5,2),
+    high_price DECIMAL(10,3),
+    low_price DECIMAL(10,3),
+    open_price DECIMAL(10,3),
+    market_cap DECIMAL(15,2),
+    quality_score DECIMAL(3,2),
+    processing_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    validation_status VARCHAR(20),
+    data_quality_metrics JSONB
+);
+
+-- Contraintes de validation
+ALTER TABLE silver_cotations 
+ADD CONSTRAINT chk_price_positive CHECK (price > 0),
+ADD CONSTRAINT chk_volume_non_negative CHECK (volume >= 0);
+\end{verbatim}
+
+\section{Couche Golden - Enrichissement et Analyse}
+
+\subsection{Objectifs de la Couche Golden}
+
+\begin{enumerate}
+    \item \textbf{Enrichissement} : Ajout d'indicateurs techniques et fondamentaux
+    \item \textbf{Aggrégation} : Calcul de métriques sectorielles et temporelles
+    \item \textbf{Analyse} : Génération d'insights et de patterns
+    \item \textbf{Préparation} : Données prêtes pour l'analyse avancée
+\end{enumerate}
+
+\subsection{Indicateurs Techniques Calculés}
+
+\subsubsection{Indicateurs de Tendance}
+
+\begin{itemize}
+    \item \textbf{Moyennes mobiles} : 7, 14, 30, 50, 200 jours
+    \item \textbf{RSI} : Relative Strength Index pour la détection de survente/surachat
+    \item \textbf{Bollinger Bands} : Bandes de volatilité et de tendance
+    \item \textbf{MACD} : Convergence/Divergence des moyennes mobiles
+\end{itemize}
+
+\subsubsection{Indicateurs de Volatilité}
+
+\begin{itemize}
+    \item \textbf{Écart-type} : Mesure de la dispersion des prix
+    \item \textbf{ATR} : Average True Range pour la volatilité réelle
+    \item \textbf{Volatilité historique} : Calcul sur différentes périodes
+\end{itemize}
+
+\subsection{Analyse Sectorielle}
+
+% \begin{figure}[H]
+% \centering
+% \includegraphics[width=0.8\columnwidth]{img/sector_analysis.png}
+% \caption{Analyse sectorielle des données Golden}
+% \label{fig:sector_analysis}
+% \end{figure}
+
+\textbf{Analyse Sectorielle Golden:}
+\begin{itemize}
+    \item \textbf{Secteur Bancaire:} Alpha, Beta, Corrélation avec TUNINDEX
+    \item \textbf{Secteur Télécom:} Performance relative et volatilité
+    \item \textbf{Secteur Industriel:} Indicateurs techniques et fondamentaux
+    \item \textbf{Secteur Tourisme:} Analyse saisonnière et tendances
+\end{itemize}
+
+\subsection{Schéma de Base de Données Golden}
+
+\begin{verbatim}
+-- Table des cotations enrichies
+CREATE TABLE golden_cotations (
+    id SERIAL PRIMARY KEY,
+    symbol VARCHAR(10) NOT NULL,
+    company_name VARCHAR(100),
+    sector VARCHAR(50),
+    
+    -- Données de base
+    price DECIMAL(10,3),
+    volume INTEGER,
+    variation DECIMAL(5,2),
+    
+    -- Indicateurs techniques
+    ma_7 DECIMAL(10,3),
+    ma_14 DECIMAL(10,3),
+    ma_30 DECIMAL(10,3),
+    ma_50 DECIMAL(10,3),
+    ma_200 DECIMAL(10,3),
+    
+    rsi_14 DECIMAL(5,2),
+    bollinger_upper DECIMAL(10,3),
+    bollinger_lower DECIMAL(10,3),
+    
+    -- Métriques sectorielles
+    sector_alpha DECIMAL(5,2),
+    sector_beta DECIMAL(5,2),
+    sector_correlation DECIMAL(5,2),
+    
+    processing_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Index pour les requêtes analytiques
+CREATE INDEX idx_golden_sector ON golden_cotations(sector);
+CREATE INDEX idx_golden_technical ON golden_cotations(rsi_14, ma_50);
+\end{verbatim}
+
+\section{Couche Diamond - Analyse Avancée et ML}
+
+\subsection{Objectifs de la Couche Diamond}
+
+\begin{itemize}
+    \item \textbf{Modélisation} : Développement de modèles prédictifs
+    \item \textbf{Analyse statistique} : Tests avancés et validation
+    \item \textbf{Optimisation} : Amélioration continue des performances
+    \item \textbf{Production} : Déploiement des modèles en production
+\end{itemize}
+
+\subsection{Modèles de Machine Learning}
+
+\subsubsection{Modèle de Prédiction de Prix}
+
+\begin{verbatim}
+from sklearn.neural_network import MLPRegressor
+from sklearn.preprocessing import StandardScaler
+
+class PricePredictionModel:
+    def __init__(self):
+        self.model = MLPRegressor(
+            hidden_layer_sizes=(100, 50, 25),
+            activation='relu',
+            solver='adam',
+            max_iter=1000
+        )
+        self.scaler = StandardScaler()
+    
+    def prepare_features(self, data):
+        """Préparation des features pour la prédiction"""
+        features = [
+            'ma_7', 'ma_14', 'ma_30', 'ma_50',
+            'rsi_14', 'volume', 'variation'
+        ]
+        return data[features]
+    
+    def train(self, X_train, y_train):
+        """Entraînement du modèle"""
+        X_scaled = self.scaler.fit_transform(X_train)
+        self.model.fit(X_scaled, y_train)
+    
+    def predict(self, X):
+        """Prédiction des prix futurs"""
+        X_scaled = self.scaler.transform(X)
+        return self.model.predict(X_scaled)
+\end{verbatim}
+
+\subsubsection{Analyse de Régime de Marché}
+
+\begin{verbatim}
+def detect_market_regime(data, window=30):
+    """Détection du régime de marché (Bull/Bear/Sideways)"""
+    
+    # Calcul de la tendance
+    data['trend'] = data['price'].rolling(window).mean()
+    data['volatility'] = data['price'].rolling(window).std()
+    
+    # Classification du régime
+    def classify_regime(row):
+        if row['trend'] > 0.02:  # Hausse > 2%
+            return 'BULL'
+        elif row['trend'] < -0.02:  # Baisse > 2%
+            return 'BEAR'
+        else:
+            return 'SIDEWAYS'
+    
+    data['regime'] = data.apply(classify_regime, axis=1)
+    return data
+\end{verbatim}
+
+\subsection{Tests Statistiques Avancés}
+
+\subsubsection{Tests de Normalité}
+
+\begin{itemize}
+    \item \textbf{Test d'Anderson-Darling} : Validation de la distribution normale
+    \item \textbf{Test de Shapiro-Wilk} : Alternative robuste pour petits échantillons
+    \item \textbf{QQ Plot} : Visualisation de la normalité
+\end{itemize}
+
+\subsubsection{Tests de Stationnarité}
+
+\begin{itemize}
+    \item \textbf{Test ADF} : Augmented Dickey-Fuller pour la stationnarité
+    \item \textbf{Test KPSS} : Kwiatkowski-Phillips-Schmidt-Shin
+    \item \textbf{Différenciation} : Transformation pour stationnariser
+\end{itemize}
+
+\subsection{Schéma de Base de Données Diamond}
+
+\begin{verbatim}
+-- Table des prédictions
+CREATE TABLE diamond_predictions (
+    id SERIAL PRIMARY KEY,
+    symbol VARCHAR(10) NOT NULL,
+    prediction_date DATE,
+    predicted_price DECIMAL(10,3),
+    confidence_interval_lower DECIMAL(10,3),
+    confidence_interval_upper DECIMAL(10,3),
+    model_version VARCHAR(20),
+    features_used JSONB,
+    prediction_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table des analyses statistiques
+CREATE TABLE diamond_statistical_analysis (
+    id SERIAL PRIMARY KEY,
+    symbol VARCHAR(10) NOT NULL,
+    analysis_type VARCHAR(50),
+    test_name VARCHAR(100),
+    test_statistic DECIMAL(10,6),
+    p_value DECIMAL(10,6),
+    conclusion TEXT,
+    analysis_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table des régimes de marché
+CREATE TABLE diamond_market_regimes (
+    id SERIAL PRIMARY KEY,
+    analysis_date DATE,
+    market_regime VARCHAR(20),
+    confidence_score DECIMAL(3,2),
+    supporting_indicators JSONB,
+    regime_duration_days INTEGER
+);
+\end{verbatim}
+
+\section{Orchestration et Workflow}
+
+\subsection{Workflow ETL Complet}
+
+% \begin{figure}[H]
+% \centering
+% \includegraphics[width=0.9\columnwidth]{img/etl_workflow.png}
+% \caption{Workflow complet ETL Medallion}
+% \label{fig:etl_workflow}
+% \end{figure}
+
+\textbf{Workflow ETL Medallion Complet:}
+\begin{enumerate}
+    \item \textbf{Ingestion:} Collecte des données depuis le scraper BVMT
+    \item \textbf{Transformation Bronze:} Stockage des données brutes
+    \item \textbf{Transformation Silver:} Nettoyage et validation
+    \item \textbf{Transformation Golden:} Enrichissement et calculs
+    \item \textbf{Transformation Diamond:} Analyse et modélisation
+    \item \textbf{Publication:} Mise à disposition pour Power BI
+\end{enumerate}
+
+\subsection{Orchestrateur de Pipeline}
+
+\begin{verbatim}
+class MedallionOrchestrator:
+    def __init__(self):
+        self.bronze_layer = BronzeLayer()
+        self.silver_layer = SilverLayer()
+        self.golden_layer = GoldenLayer()
+        self.diamond_layer = DiamondLayer()
+    
+    def run_full_pipeline(self):
+        """Exécution du pipeline complet"""
+        try:
+            # Étape 1: Ingestion Bronze
+            bronze_data = self.bronze_layer.ingest_data()
+            
+            # Étape 2: Transformation Silver
+            silver_data = self.silver_layer.transform(bronze_data)
+            
+            # Étape 3: Enrichissement Golden
+            golden_data = self.golden_layer.enrich(silver_data)
+            
+            # Étape 4: Analyse Diamond
+            diamond_results = self.diamond_layer.analyze(golden_data)
+            
+            return {
+                'status': 'success',
+                'bronze_count': len(bronze_data),
+                'silver_count': len(silver_data),
+                'golden_count': len(golden_data),
+                'diamond_insights': len(diamond_results)
+            }
+            
+        except Exception as e:
+            return {
+                'status': 'error',
+                'error': str(e),
+                'step': 'pipeline_execution'
+            }
+\end{verbatim}
+
+\section{Performance et Optimisation}
+
+\subsection{Métriques de Performance}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|L|C|C|C|}
+\hline
+\textbf{Couche} & \textbf{Temps de Traitement} & \textbf{Volume Traité} & \textbf{Performance} \\
+\hline
+Bronze & 2-3 minutes & 800K+ enregistrements & 95\% \\
+\hline
+Silver & 5-7 minutes & 750K+ enregistrements & 90\% \\
+\hline
+Golden & 8-10 minutes & 700K+ enregistrements & 85\% \\
+\hline
+Diamond & 15-20 minutes & 100K+ enregistrements & 80\% \\
+\hline
+\end{tabular}
+\caption{Métriques de performance par couche}
+\label{tab:performance_metrics}
+\end{table}
+
+\subsection{Stratégies d'Optimisation}
+
+\begin{itemize}
+    \item \textbf{Parallélisation} : Traitement simultané de plusieurs symboles
+    \item \textbf{Partitionnement} : Division des données par date et secteur
+    \item \textbf{Indexation} : Optimisation des requêtes de base de données
+    \item \textbf{Caching} : Mise en cache des calculs intermédiaires
+\end{itemize}
+
+\section{Monitoring et Observabilité}
+
+\subsection{Dashboard de Monitoring}
+
+% \begin{figure}[H]
+% \centering
+% \includegraphics[width=0.8\columnwidth]{img/etl_monitoring.png}
+% \caption{Dashboard de monitoring ETL}
+% \label{fig:etl_monitoring}
+% \end{figure}
+
+\textbf{Dashboard de Monitoring ETL:}
+\begin{itemize}
+    \item \textbf{Métriques de Performance:} Temps de traitement par couche
+    \item \textbf{Qualité des Données:} Scores de validation et erreurs
+    \item \textbf{Utilisation des Ressources:} CPU, mémoire, disque
+    \item \textbf{Alertes:} Notifications en cas de problème
+    \item \textbf{Historique:} Suivi des performances dans le temps
+\end{itemize}
+
+\subsection{Métriques Clés}
+
+\begin{itemize}
+    \item \textbf{Throughput} : Nombre d'enregistrements traités par minute
+    \item \textbf{Latency} : Temps de traitement par couche
+    \item \textbf{Error Rate} : Taux d'erreur par étape
+    \item \textbf{Data Quality} : Score de qualité des données
+    \item \textbf{Resource Usage} : Utilisation CPU, mémoire, disque
+\end{itemize}
+
+\section{Tests et Validation}
+
+\subsection{Stratégie de Test}
+
+\begin{enumerate}
+    \item \textbf{Tests unitaires} : Validation des composants individuels
+    \item \textbf{Tests d'intégration} : Vérification des interactions entre couches
+    \item \textbf{Tests de performance} : Mesure des temps de réponse
+    \item \textbf{Tests de régression} : Validation de la non-régression
+\end{enumerate}
+
+\subsection{Validation des Données}
+
+\begin{verbatim}
+def validate_data_quality(data, layer_name):
+    """Validation de la qualité des données par couche"""
+    
+    validation_results = {
+        'completeness': check_completeness(data),
+        'accuracy': check_accuracy(data),
+        'consistency': check_consistency(data),
+        'timeliness': check_timeliness(data),
+        'validity': check_validity(data)
+    }
+    
+    # Calcul du score global
+    overall_score = sum(validation_results.values()) / len(validation_results)
+    
+    return {
+        'layer': layer_name,
+        'score': overall_score,
+        'details': validation_results
+    }
+\end{verbatim}
+
+\section{Conclusion du Sprint}
+
+\subsection{Objectifs Atteints}
+
+\begin{itemize}
+    \item ✅ Architecture Medallion ETL complète implémentée
+    \item ✅ Quatre couches fonctionnelles (Bronze, Silver, Golden, Diamond)
+    \item ✅ Pipeline d'orchestration automatisé
+    \item ✅ Modèles de machine learning opérationnels
+    \item ✅ Monitoring et observabilité en place
+    \item ✅ Tests et validation complets
+\end{itemize}
+
+\subsection{Retour d'Expérience}
+
+Le deuxième sprint a permis de :
+
+\begin{itemize}
+    \item \textbf{Valider l'architecture} Medallion pour les données financières
+    \item \textbf{Optimiser les performances} de chaque couche
+    \item \textbf{Implémenter des modèles ML} prédictifs
+    \item \textbf{Établir un monitoring} robuste du pipeline
+\end{itemize}
+
+\subsection{Prochaines Étapes}
+
+L'architecture ETL Medallion constitue le cœur de la plateforme. Les prochains sprints se concentreront sur :
+
+\begin{enumerate}
+    \item \textbf{Intégration Power BI} : Création de tableaux de bord
+    \item \textbf{Plateforme Web} : Interface utilisateur complète
+    \item \textbf{Chatbot IA} : Assistant intelligent spécialisé
+\end{enumerate}
+
+Ce sprint démontre la puissance et la flexibilité de l'architecture Medallion pour l'analyse financière de la BVMT.

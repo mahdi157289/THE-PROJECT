@@ -1,0 +1,197 @@
+\chapter{Système de Scraping BVMT}
+
+\section*{Introduction}
+
+Ce chapitre présente le premier sprint de développement consacré à la conception et l'implémentation du système de scraping automatisé pour la Bourse des Valeurs Mobilières de Tunis (BVMT). Ce composant constitue la base de notre architecture Medallion ETL, fournissant les données brutes nécessaires aux couches de transformation ultérieures.
+
+\section{Contexte et Objectifs du Sprint}
+
+\subsection{Objectifs du Sprint 1}
+
+\begin{itemize}
+    \item \textbf{Collecte automatisée} des données financières BVMT
+    \item \textbf{Extraction structurée} des cotations, indices et métadonnées
+    \item \textbf{Stockage sécurisé} des données brutes dans la couche Bronze
+    \item \textbf{Monitoring en temps réel} du processus de scraping
+    \item \textbf{Interface utilisateur} pour le contrôle et la supervision
+\end{itemize}
+
+\subsection{Planning Scrum}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|L|C|C|C|}
+\hline
+\textbf{Phase} & \textbf{Durée} & \textbf{Objectifs} & \textbf{Délivrables} \\
+\hline
+Sprint Planning & 1 jour & Définition des user stories & Product Backlog \\
+\hline
+Development & 5 jours & Implémentation du scraper & Code source \\
+\hline
+Testing & 2 jours & Validation et tests & Rapport de tests \\
+\hline
+Review & 1 jour & Démonstration et feedback & Sprint Review \\
+\hline
+\end{tabular}
+\caption{Planning du Sprint 1 - Scraping BVMT}
+\label{tab:sprint1_planning}
+\end{table}
+
+\section{Architecture du Système de Scraping}
+
+\subsection{Composants Principaux}
+
+Le système de scraping BVMT est composé de plusieurs modules interconnectés :
+
+% \begin{figure}[H]
+% \centering
+% \includegraphics[width=0.9\columnwidth]{img/scraping_architecture.png}
+% \caption{Architecture du système de scraping BVMT}
+% \label{fig:scraping_architecture}
+% \end{figure}
+
+\textbf{Architecture du Système de Scraping BVMT:}
+\begin{itemize}
+    \item \textbf{Layer 1:} Collecte des données depuis le site web BVMT
+    \item \textbf{Layer 2:} Parsing et extraction des données HTML
+    \item \textbf{Layer 3:} Validation et nettoyage des données
+    \item \textbf{Layer 4:} Stockage dans la base de données Bronze
+    \item \textbf{Layer 5:} Monitoring et supervision en temps réel
+\end{itemize}
+
+\subsection{Flux de Données}
+
+\begin{enumerate}
+    \item \textbf{Extraction} : Collecte des données depuis le site web BVMT
+    \item \textbf{Transformation} : Parsing et structuration des données HTML
+    \item \textbf{Validation} : Vérification de la qualité et de la cohérence
+    \item \textbf{Stockage} : Sauvegarde dans la base de données Bronze
+    \item \textbf{Monitoring} : Suivi des performances et des erreurs
+\end{enumerate}
+
+\section{Implémentation Technique}
+
+\subsection{Technologies Utilisées}
+
+\begin{itemize}
+    \item \textbf{Python 3.9+} : Langage principal de développement
+    \item \textbf{Requests} : Bibliothèque HTTP pour les requêtes web
+    \item \textbf{BeautifulSoup4} : Parsing HTML et extraction des données
+    \item \textbf{Pandas} : Manipulation et structuration des données
+    \item \textbf{SQLAlchemy} : Interface de base de données
+    \item \textbf{Logging} : Système de journalisation avancé
+\end{itemize}
+
+\subsection{Structure du Code}
+
+% \begin{figure}[H]
+% \centering
+% \includegraphics[width=0.8\columnwidth]{img/scraping_code_structure.png}
+% \caption{Structure du code du système de scraping}
+% \label{fig:scraping_code_structure}
+% \end{figure}
+
+\textbf{Structure du Code:}
+\begin{itemize}
+    \item \textbf{bvmt\_scraper.py} : Module principal de scraping
+    \item \textbf{data\_processor.py} : Traitement et validation des données
+    \item \textbf{database\_manager.py} : Gestion de la base de données
+    \item \textbf{monitoring.py} : Système de surveillance et logging
+    \item \textbf{config.py} : Configuration et paramètres
+\end{itemize}
+
+\section{Extraction des Données}
+
+\subsection{Types de Données Collectées}
+
+\subsubsection{Cotations Boursières}
+
+\begin{itemize}
+    \item \textbf{Prix d'ouverture, de fermeture, maximum, minimum}
+    \item \textbf{Volume d'échanges}
+    \item \textbf{Variation en pourcentage}
+    \item \textbf{Capitalisation boursière}
+    \item \textbf{Date et heure de dernière mise à jour}
+\end{itemize}
+
+\subsubsection{Indices Boursiers}
+
+\begin{itemize}
+    \item \textbf{TUNINDEX} : Indice principal de la BVMT
+    \item \textbf{TUNINDEX20} : Indice des 20 plus grandes capitalisations
+    \item \textbf{TUNSIA} : Indice sectoriel
+    \item \textbf{Variations et performances}
+\end{itemize}
+
+\section{Stockage et Persistance}
+
+\subsection{Architecture de Stockage}
+
+Les données extraites sont stockées dans la couche Bronze de l'architecture Medallion :
+
+% \begin{figure}[H]
+% \centering
+% \includegraphics[width=0.8\columnwidth]{img/bronze_storage.png}
+% \caption{Architecture de stockage Bronze}
+% \label{fig:bronze_storage}
+% \end{figure}
+
+\textbf{Architecture de Stockage Bronze:}
+\begin{itemize}
+    \item \textbf{Table:} bronze\_cotations (données brutes des cotations)
+    \item \textbf{Table:} bronze\_indices (données brutes des indices)
+    \item \textbf{Table:} bronze\_metadata (métadonnées des entreprises)
+    \item \textbf{Index:} Optimisation des requêtes par date et symbole
+    \item \textbf{Partitioning:} Division des données par période
+\end{itemize}
+
+\subsection{Schéma de Base de Données}
+
+\begin{verbatim}
+-- Table des cotations brutes
+CREATE TABLE bronze_cotations (
+    id SERIAL PRIMARY KEY,
+    symbol VARCHAR(10) NOT NULL,
+    company_name VARCHAR(100),
+    price DECIMAL(10,3),
+    volume INTEGER,
+    variation DECIMAL(5,2),
+    extraction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+\end{verbatim}
+
+\section{Monitoring et Supervision}
+
+\subsection{Interface de Contrôle}
+
+L'interface utilisateur permet aux utilisateurs de :
+
+\begin{itemize}
+    \item \textbf{Lancer manuellement} le processus de scraping
+    \item \textbf{Surveiller en temps réel} l'état d'exécution
+    \item \textbf{Consulter les logs} et les statistiques
+    \item \textbf{Configurer les paramètres} de scraping
+    \item \textbf{Visualiser l'historique} des extractions
+\end{itemize}
+
+\section{Conclusion du Sprint}
+
+\subsection{Objectifs Atteints}
+
+\begin{itemize}
+    \item ✅ Système de scraping automatisé fonctionnel
+    \item ✅ Interface de monitoring et de contrôle
+    \item ✅ Stockage sécurisé dans la couche Bronze
+    \item ✅ Gestion robuste des erreurs
+    \item ✅ Tests et validation complets
+\end{itemize}
+
+\subsection{Prochaines Étapes}
+
+Le système de scraping constitue une base solide pour le développement de l'architecture Medallion ETL. Les prochains sprints se concentreront sur :
+
+\begin{enumerate}
+    \item \textbf{Couche Silver} : Nettoyage et validation des données
+    \item \textbf{Couche Golden} : Enrichissement et transformation
+    \item \textbf{Couche Diamond} : Analyse avancée et modélisation
+\end{enumerate}

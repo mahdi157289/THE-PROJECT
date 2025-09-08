@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 AI Bot API Browser Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .test-button:hover {
+            background: #45a049;
+        }
+        .test-button.danger {
+            background: #f44336;
+        }
+        .test-button.danger:hover {
+            background: #da190b;
+        }
+        .result {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            border-left: 4px solid #4CAF50;
+        }
+        .error {
+            border-left: 4px solid #f44336;
+        }
+        .loading {
+            border-left: 4px solid #ff9800;
+        }
+        .chat-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .chat-messages {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            background: white;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .user-message {
+            background: #e3f2fd;
+            text-align: right;
+        }
+        .bot-message {
+            background: #f3e5f5;
+        }
+        .example-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .example-button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            margin: 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .example-button:hover {
+            background: #1976D2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .advanced-button {
+            background: #FF9800;
+        }
+        .advanced-button:hover {
+            background: #F57C00;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧪 AI Bot API Browser Test Suite</h1>
+        <p>Test all AI bot endpoints directly from your browser</p>
+        <p>Backend URL: <strong>http://127.0.0.1:5000</strong></p>
+        <div id="connection-status" style="margin-top: 10px; padding: 8px; border-radius: 5px; background: rgba(255,255,255,0.2);">
+            <span id="status-text">🔍 Checking connection...</span>
+        </div>
+    </div>
+
+    <!-- Basic Endpoints Test -->
+    <div class="test-section">
+        <h2>🧪 Basic Endpoints</h2>
+        <button class="test-button" onclick="testSuggestions()">Get Suggestions</button>
+        <button class="test-button" onclick="testIntelligenceStatus()">Intelligence Status</button>
+        <button class="test-button" onclick="testMarketIntelligence()">Market Intelligence</button>
+        <button class="test-button" onclick="testHealthCheck()">Health Check</button>
+        <button class="test-button" onclick="testSmartSuggestions()">Smart Suggestions</button>
+        <button class="test-button" onclick="testUserProfile()">User Profile</button>
+        <div id="basic-results" class="result" style="display: none;"></div>
+    </div>
+
+    <!-- Chat Test -->
+    <div class="test-section">
+        <h2>💬 Chat Test</h2>
+        <input type="text" id="chat-input" class="chat-input" placeholder="Type your message here..." 
+               value="What is BVMT?" onkeypress="handleKeyPress(event)">
+        <button class="test-button" onclick="testChat()">Send Message</button>
+        <button class="test-button" onclick="clearChat()">Clear Chat</button>
+        <div id="chat-messages" class="chat-messages"></div>
+    </div>
+
+    <!-- AI Bot Test Examples -->
+    <div class="test-section">
+        <h2>🎯 AI Bot Test Examples</h2>
+        <p>Click any button to test specific AI bot capabilities with real examples:</p>
+        
+        <div class="example-grid">
+            <button class="example-button" onclick="testChatExample('What is BVMT?')">🏦 What is BVMT?</button>
+            <button class="example-button" onclick="testChatExample('BVMT market analysis')">📊 Market Analysis</button>
+            <button class="example-button" onclick="testChatExample('How to invest in BVMT?')">💡 Investment Advice</button>
+            <button class="example-button" onclick="testChatExample('Tell me about Tunisian companies')">🏢 Tunisian Companies</button>
+            <button class="example-button" onclick="testChatExample('Which sectors perform well in Tunisia?')">📈 Sector Performance</button>
+            <button class="example-button" onclick="testChatExample('BVMT trading hours')">⏰ Trading Hours</button>
+            <button class="example-button" onclick="testChatExample('Tunisian stock market trends')">📉 Market Trends</button>
+            <button class="example-button" onclick="testChatExample('Latest BVMT news')">📰 Latest News</button>
+        </div>
+        
+        <div style="margin: 15px 0;">
+            <h3>🧠 Advanced AI Tests</h3>
+            <button class="test-button advanced-button" onclick="testAllChatExamples()">🚀 Test All Examples</button>
+            <button class="test-button advanced-button" onclick="testRandomExample()">🎲 Random Example</button>
+            <button class="test-button advanced-button" onclick="testCustomMessage()">✏️ Custom Message</button>
+        </div>
+        
+        <div id="example-results" class="result" style="display: none;"></div>
+    </div>
+
+    <!-- Advanced Tests -->
+    <div class="test-section">
+        <h2>🚀 Advanced Tests</h2>
+        <button class="test-button" onclick="testAllEndpoints()">Test All Endpoints</button>
+        <button class="test-button" onclick="testErrorHandling()">Test Error Handling</button>
+        <button class="test-button" onclick="testPerformance()">Performance Test</button>
+        <div id="advanced-results" class="result" style="display: none;"></div>
+    </div>
+
+    <!-- ETL Integration Test -->
+    <div class="test-section">
+        <h2>🔗 ETL Integration Test</h2>
+        <button class="test-button" onclick="testETLIntegration()">Test ETL Endpoints</button>
+        <div id="etl-results" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        const BASE_URL = 'http://127.0.0.1:5000';
+        const AI_API_BASE = `${BASE_URL}/api/ai`;
+
+        function showResult(elementId, content, isError = false) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `result ${isError ? 'error' : 'success'}`;
+            element.textContent = content;
+        }
+
+        function showLoading(elementId) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = 'result loading';
+            element.textContent = 'Loading...';
+        }
+
+        async function testSuggestions() {
+            showLoading('basic-results');
+            try {
+                const response = await fetch(`${AI_API_BASE}/suggestions`);
+                const data = await response.json();
+                showResult('basic-results', `✅ Suggestions API\nStatus: ${response.status}\n\nResponse:\n${JSON.stringify(data, null, 2)}`);
+            } catch (error) {
+                showResult('basic-results', `❌ Error: ${error.message}`, true);
+            }
+        }
+
+        async function testIntelligenceStatus() {
+            showLoading('basic-results');
+            try {
+                const response = await fetch(`${AI_API_BASE}/intelligence-status`);
+                const data = await response.json();
+                showResult('basic-results', `✅ Intelligence Status API\nStatus: ${response.status}\n\nResponse:\n${JSON.stringify(data, null, 2)}`);
+            } catch (error) {
+                showResult('basic-results', `❌ Error: ${error.message}`, true);
+            }
+        }
+
+        async function testMarketIntelligence() {
+            showLoading('basic-results');
+            try {
+                const response = await fetch(`${AI_API_BASE}/market-intelligence`);
+                const data = await response.json();
+                showResult('basic-results', `✅ Market Intelligence API\nStatus: ${response.status}\n\nResponse:\n${JSON.stringify(data, null, 2)}`);
+            } catch (error) {
+                showResult('basic-results', `❌ Error: ${error.message}`, true);
+            }
+        }
+
+        async function testHealthCheck() {
+            showLoading('basic-results');
+            try {
+                const response = await fetch(`${AI_API_BASE}/health-smart`);
+                const data = await response.json();
+                showResult('basic-results', `✅ Health Check API\nStatus: ${response.status}\n\nResponse:\n${JSON.stringify(data, null, 2)}`);
+            } catch (error) {
+                showResult('basic-results', `❌ Error: ${error.message}`, true);
+            }
+        }
+
+        async function testSmartSuggestions() {
+            showLoading('basic-results');
+            try {
+                const response = await fetch(`${AI_API_BASE}/suggestions-smart`);
+                const data = await response.json();
+                showResult('basic-results', `✅ Smart Suggestions API\nStatus: ${response.status}\n\nResponse:\n${JSON.stringify(data, null, 2)}`);
+            } catch (error) {
+                showResult('basic-results', `❌ Error: ${error.message}`, true);
+            }
+        }
+
+        async function testUserProfile() {
+            showLoading('basic-results');
+            try {
+                const response = await fetch(`${AI_API_BASE}/user-profile/test_user_001`);
+                const data = await response.json();
+                showResult('basic-results', `✅ User Profile API\nStatus: ${response.status}\n\nResponse:\n${JSON.stringify(data, null, 2)}`);
+            } catch (error) {
+                showResult('basic-results', `❌ Error: ${error.message}`, true);
+            }
+        }
+
+        async function testChat() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (!message) {
+                alert('Please enter a message');
+                return;
+            }
+
+            // Add user message to chat
+            addMessageToChat(message, 'user');
+            
+            try {
+                const response = await fetch(`${AI_API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: `browser_test_${Date.now()}`
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addMessageToChat(data.response, 'bot');
+                } else {
+                    addMessageToChat(`Error: ${data.error || 'Unknown error'}`, 'bot');
+                }
+            } catch (error) {
+                addMessageToChat(`Connection Error: ${error.message}`, 'bot');
+            }
+            
+            input.value = '';
+        }
+
+        function addMessageToChat(message, sender) {
+            const chatMessages = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            messageDiv.textContent = message;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function clearChat() {
+            document.getElementById('chat-messages').innerHTML = '';
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                testChat();
+            }
+        }
+
+        // AI Bot Test Examples Functions
+        async function testChatExample(message) {
+            showLoading('example-results');
+            try {
+                const response = await fetch(`${AI_API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: `example_test_${Date.now()}`
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('example-results', `✅ Chat Example: "${message}"\nStatus: ${response.status}\n\nResponse:\n${data.response}`);
+                } else {
+                    showResult('example-results', `❌ Error: ${data.error || 'Unknown error'}`, true);
+                }
+            } catch (error) {
+                showResult('example-results', `❌ Connection Error: ${error.message}`, true);
+            }
+        }
+
+        async function testAllChatExamples() {
+            showLoading('example-results');
+            const examples = [
+                "What is BVMT?",
+                "BVMT market analysis", 
+                "How to invest in BVMT?",
+                "Tell me about Tunisian companies",
+                "Which sectors perform well in Tunisia?",
+                "BVMT trading hours",
+                "Tunisian stock market trends",
+                "Latest BVMT news"
+            ];
+            
+            let results = '🚀 Testing All Chat Examples\n\n';
+            let successCount = 0;
+            
+            for (let i = 0; i < examples.length; i++) {
+                const message = examples[i];
+                try {
+                    const response = await fetch(`${AI_API_BASE}/chat`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            message: message,
+                            session_id: `batch_test_${i}`
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        results += `✅ ${i+1}. "${message}" - SUCCESS\n`;
+                        successCount++;
+                    } else {
+                        results += `❌ ${i+1}. "${message}" - FAILED (${response.status})\n`;
+                    }
+                } catch (error) {
+                    results += `❌ ${i+1}. "${message}" - ERROR: ${error.message}\n`;
+                }
+                
+                // Small delay between requests
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+            
+            results += `\n📊 Results: ${successCount}/${examples.length} successful (${(successCount/examples.length*100).toFixed(1)}%)`;
+            showResult('example-results', results);
+        }
+
+        async function testRandomExample() {
+            const examples = [
+                "What is BVMT?",
+                "BVMT market analysis",
+                "How to invest in BVMT?",
+                "Tell me about Tunisian companies",
+                "Which sectors perform well in Tunisia?",
+                "BVMT trading hours",
+                "Tunisian stock market trends",
+                "Latest BVMT news"
+            ];
+            
+            const randomMessage = examples[Math.floor(Math.random() * examples.length)];
+            await testChatExample(randomMessage);
+        }
+
+        function testCustomMessage() {
+            const message = prompt("Enter your custom message to test the AI bot:");
+            if (message && message.trim()) {
+                testChatExample(message.trim());
+            }
+        }
+
+        async function testAllEndpoints() {
+            showLoading('advanced-results');
+            let results = '🧪 Testing All Endpoints\n\n';
+            
+            const endpoints = [
+                { name: 'Suggestions', url: `${AI_API_BASE}/suggestions`, method: 'GET' },
+                { name: 'Intelligence Status', url: `${AI_API_BASE}/intelligence-status`, method: 'GET' },
+                { name: 'Market Intelligence', url: `${AI_API_BASE}/market-intelligence`, method: 'GET' },
+                { name: 'Smart Suggestions', url: `${AI_API_BASE}/suggestions-smart`, method: 'GET' },
+                { name: 'Health Check', url: `${AI_API_BASE}/health-smart`, method: 'GET' }
+            ];
+
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(endpoint.url, { method: endpoint.method });
+                    const data = await response.json();
+                    results += `✅ ${endpoint.name}: ${response.status}\n`;
+                } catch (error) {
+                    results += `❌ ${endpoint.name}: ${error.message}\n`;
+                }
+            }
+            
+            showResult('advanced-results', results);
+        }
+
+        async function testErrorHandling() {
+            showLoading('advanced-results');
+            let results = '🧪 Error Handling Tests\n\n';
+            
+            // Test empty message
+            try {
+                const response = await fetch(`${AI_API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: '', session_id: 'test' })
+                });
+                results += `✅ Empty Message: ${response.status} (Expected: 400)\n`;
+            } catch (error) {
+                results += `❌ Empty Message: ${error.message}\n`;
+            }
+            
+            // Test invalid endpoint
+            try {
+                const response = await fetch(`${AI_API_BASE}/invalid-endpoint`);
+                results += `✅ Invalid Endpoint: ${response.status} (Expected: 404)\n`;
+            } catch (error) {
+                results += `❌ Invalid Endpoint: ${error.message}\n`;
+            }
+            
+            showResult('advanced-results', results);
+        }
+
+        async function testPerformance() {
+            showLoading('advanced-results');
+            const startTime = Date.now();
+            let successful = 0;
+            const total = 5;
+            
+            for (let i = 0; i < total; i++) {
+                try {
+                    const response = await fetch(`${AI_API_BASE}/chat`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            message: `Performance test ${i}`,
+                            session_id: `perf_${i}`
+                        })
+                    });
+                    if (response.ok) successful++;
+                } catch (error) {
+                    // Ignore errors for performance test
+                }
+            }
+            
+            const endTime = Date.now();
+            const totalTime = endTime - startTime;
+            const avgTime = totalTime / total;
+            
+            const results = `🚀 Performance Test Results\n\n` +
+                          `Total Requests: ${total}\n` +
+                          `Successful: ${successful}\n` +
+                          `Success Rate: ${(successful/total*100).toFixed(1)}%\n` +
+                          `Total Time: ${totalTime}ms\n` +
+                          `Average Time: ${avgTime.toFixed(1)}ms`;
+            
+            showResult('advanced-results', results);
+        }
+
+        async function testETLIntegration() {
+            showLoading('etl-results');
+            let results = '🔗 ETL Integration Tests\n\n';
+            
+            const etlEndpoints = [
+                '/api/scraping/status',
+                '/api/bronze/status',
+                '/api/silver/status',
+                '/api/golden/status',
+                '/api/diamond/status'
+            ];
+            
+            for (const endpoint of etlEndpoints) {
+                try {
+                    const response = await fetch(`${BASE_URL}${endpoint}`);
+                    const data = await response.json();
+                    const layerName = endpoint.split('/')[2].toUpperCase();
+                    results += `✅ ${layerName}: ${response.status}\n`;
+                } catch (error) {
+                    const layerName = endpoint.split('/')[2].toUpperCase();
+                    results += `❌ ${layerName}: ${error.message}\n`;
+                }
+            }
+            
+            showResult('etl-results', results);
+        }
+
+        // Connection status check
+        async function checkConnection() {
+            const statusElement = document.getElementById('status-text');
+            const statusContainer = document.getElementById('connection-status');
+            
+            try {
+                const response = await fetch(`${BASE_URL}/`, { timeout: 5000 });
+                if (response.ok) {
+                    statusElement.textContent = '✅ Backend Connected - Ready to test!';
+                    statusContainer.style.background = 'rgba(76, 175, 80, 0.3)';
+                } else {
+                    statusElement.textContent = '⚠️ Backend responding but with errors';
+                    statusContainer.style.background = 'rgba(255, 152, 0, 0.3)';
+                }
+            } catch (error) {
+                statusElement.textContent = '❌ Backend not connected - Start your server!';
+                statusContainer.style.background = 'rgba(244, 67, 54, 0.3)';
+            }
+        }
+
+        // Auto-test on page load
+        window.onload = function() {
+            console.log('🧪 AI Bot API Test Suite loaded');
+            console.log('Backend URL:', BASE_URL);
+            checkConnection();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+\section{User Management and Security}
+
+\subsection{Introduction}
+This section presents the implementation of the user management and security system, essential for a professional financial platform.
+
+\subsection{Authentication System}
+\subsubsection{Security Architecture}
+\begin{itemize}
+    \item JWT (JSON Web Tokens): Stateless authentication with automatic expiration
+    \item Password Hashing: Protection with bcrypt and unique salt
+    \item Session Management: Secure sessions with refresh tokens
+    \item Token Validation: Automatic verification of validity and expiration
+\end{itemize}
+
+\subsubsection{Authentication Endpoints}
+\begin{itemize}
+    \item POST /api/auth/register: Creation of new user accounts
+    \item POST /api/auth/login: Secure login with credential validation
+    \item POST /api/auth/logout: Logout and session invalidation
+    \item GET /api/auth/profile: Retrieval of authenticated user profile
+    \item POST /api/auth/verify-token: Validation of authentication tokens
+\end{itemize}
+
+\subsection{Account Creation and Management}
+\subsubsection{Registration Process}
+\begin{itemize}
+    \item Data Validation: Verification of required fields (username, email, password, fullName)
+    \item Uniqueness Check: Control of username/email duplicates
+    \item Automatic Creation: Generation of user profile with default role
+    \item Immediate Confirmation: Return of authentication token and user data
+\end{itemize}
+
+\subsubsection{Profile Management}
+\begin{itemize}
+    \item Personal Information: Full name, email, username
+    \item Metadata: Creation date, last login, active status
+    \item Roles and Permissions: Extensible role system (user, admin, analyst)
+    \item User Preferences: Personalized interface configuration
+\end{itemize}
+
+\subsection{Data Security and Sessions}
+\subsubsection{Sensitive Data Protection}
+\begin{itemize}
+    \item Password Encryption: bcrypt hashing with unique salt
+    \item Token Security: Cryptographic signature and automatic expiration
+    \item Session Protection: Secure storage and token rotation
+    \item Input Validation: Sanitization and validation of user data
+\end{itemize}
+
+\subsubsection{Advanced Security Measures}
+\begin{itemize}
+    \item Rate Limiting: Protection against brute force attacks
+    \item Token Validation: Verification of integrity and validity
+    \item Error Handling: Secure error messages without information leakage
+    \item Security Monitoring: Detection of intrusion attempts and anomalies
+\end{itemize}
+
+\subsection{Conclusion}
+The user management and security system ensures the protection of sensitive financial data while providing a smooth and secure user experience, essential for a professional financial analysis platform.
